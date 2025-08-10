@@ -2,6 +2,14 @@
 
 An interactive terminal application for navigating and managing development workflows on macOS with integrated AI assistant.
 
+## 🚀 Quick Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal-navigator/main/install_one_line.sh | bash
+```
+
+**Then run:** `mode`
+
 ## Features
 
 ### 🤖 AI Assistant (NEW!)
@@ -47,7 +55,24 @@ An interactive terminal application for navigating and managing development work
 - Terminal or iTerm2
 - Ollama (for AI assistant features)
 
-### Complete Installation on Mac
+### 🚀 One-Line Install (Recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal-navigator/main/install_one_line.sh | bash
+```
+
+This will:
+- Clone the repository to `~/.mode`
+- Install Python dependencies
+- Add to your PATH
+- Set up AI assistant (if Ollama is available)
+- Make everything ready to use
+
+**Then just run:** `mode`
+
+---
+
+### Manual Installation
 
 #### 1. Clone the Repository
 ```bash
