@@ -119,7 +119,7 @@ class ModeApp:
             {
                 'name': '• The Code',
                 'value': 'thecode',
-                'description': 'Navigate to the Mode Terminal Navigator source code directory'
+                'description': 'Navigate to the Mode Terminal source code directory'
             },
             {
                 'name': '• Help',
@@ -145,7 +145,7 @@ class ModeApp:
         
         def show_main_help():
             self.console.clear()
-            self.console.print(Panel("Mode Terminal Navigator - Main Menu Help", style="bold yellow"))
+            self.console.print(Panel("Mode Terminal - Main Menu Help", style="bold yellow"))
             self.console.print()
             
             help_table = Table(title="Available Options")
@@ -165,7 +165,7 @@ class ModeApp:
             try:
                 result = show_menu(
                     self.console,
-                    "Mode Terminal Navigator - Main Menu", 
+                    "Mode Terminal - Main Menu", 
                     options,
                     show_main_help,
                     self.show_header,
@@ -242,12 +242,12 @@ class ModeApp:
             return 'continue'
         
     def handle_thecode_menu(self):
-        """Handle navigation to Mode Terminal Navigator source code"""
+        """Handle navigation to Mode Terminal source code"""
         mode_path = Path.home() / '.mode'
         
         try:
             if not mode_path.exists():
-                self.console.print("[red]Mode Terminal Navigator source directory not found.[/red]")
+                self.console.print("[red]Mode Terminal source directory not found.[/red]")
                 input("Press Enter to continue...")
                 return 'continue'
                 
@@ -347,7 +347,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Mode Terminal Navigator - Interactive development workflow navigator",
+        description="Mode Terminal - Interactive development workflow navigator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -361,7 +361,7 @@ For more information, visit: https://github.com/JadenB9/mode-terminal-navigator
     parser.add_argument(
         '--version', 
         action='version', 
-        version='Mode Terminal Navigator v1.0.0'
+        version='Mode Terminal v1.0.0'
     )
     
     parser.add_argument(

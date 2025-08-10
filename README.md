@@ -1,4 +1,4 @@
-# Mode Terminal Navigator
+# Mode Terminal
 
 An interactive terminal application for navigating and managing development workflows on macOS with integrated AI assistant.
 
@@ -7,12 +7,12 @@ An interactive terminal application for navigating and managing development work
 ### Option 1: Homebrew (Recommended)
 ```bash
 brew tap jadenb9/tap
-brew install mode-terminal-navigator
+brew install mode-terminal
 ```
 
 ### Option 2: One-Line Installer
 ```bash
-curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal-navigator/main/install_one_line.sh | bash
+curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal/main/install_one_line.sh | bash
 ```
 
 **Then run:** `mode`
@@ -65,7 +65,7 @@ curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal-navigator/mai
 ### 🚀 One-Line Install (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal-navigator/main/install_one_line.sh | bash
+curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal/main/install_one_line.sh | bash
 ```
 
 This will:
@@ -85,7 +85,7 @@ This will:
 ```bash
 # Clone to your home directory
 cd ~
-git clone https://github.com/JadenB9/mode-terminal-navigator.git .mode
+git clone https://github.com/JadenB9/mode-terminal.git .mode
 
 # Navigate to the directory
 cd ~/.mode

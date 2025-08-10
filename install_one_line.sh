@@ -1,10 +1,10 @@
 #!/bin/bash
-# Mode Terminal Navigator - One Line Installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal-navigator/main/install_one_line.sh | bash
+# Mode Terminal - One Line Installer
+# Usage: curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal/main/install_one_line.sh | bash
 
 set -e
 
-echo "🚀 Installing Mode Terminal Navigator..."
+echo "🚀 Installing Mode Terminal..."
 
 # Check if running on macOS
 if [[ "$OSTYPE" != "darwin"* ]]; then
@@ -19,9 +19,9 @@ if [ -d "$HOME/.mode" ]; then
 fi
 
 # Clone the repository
-echo "📥 Downloading Mode Terminal Navigator..."
+echo "📥 Downloading Mode Terminal..."
 cd "$HOME"
-git clone https://github.com/JadenB9/mode-terminal-navigator.git .mode
+git clone https://github.com/JadenB9/mode-terminal.git .mode
 
 # Navigate to directory
 cd "$HOME/.mode"
@@ -40,7 +40,7 @@ fi
 
 # Add to PATH if not already there
 if ! echo $PATH | grep -q "$HOME/.mode"; then
-    echo "🔧 Adding Mode Terminal Navigator to PATH..."
+    echo "🔧 Adding Mode Terminal to PATH..."
     echo 'export PATH="$HOME/.mode:$PATH"' >> ~/.zshrc
     export PATH="$HOME/.mode:$PATH"
 fi
@@ -62,7 +62,7 @@ fi
 
 # Success message
 echo ""
-echo "🎉 Mode Terminal Navigator installed successfully!"
+echo "🎉 Mode Terminal installed successfully!"
 echo ""
 echo "📖 Quick Start:"
 echo "   1. Restart your terminal or run: source ~/.zshrc"
@@ -70,6 +70,6 @@ echo "   2. Run: mode"
 echo "   3. Press TAB for AI chat (if Ollama is installed)"
 echo ""
 echo "📍 Installation location: $HOME/.mode"
-echo "🔗 Repository: https://github.com/JadenB9/mode-terminal-navigator"
+echo "🔗 Repository: https://github.com/JadenB9/mode-terminal"
 echo ""
 echo "Happy navigating! 🧭"
