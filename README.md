@@ -4,6 +4,13 @@ An interactive terminal application for navigating and managing development work
 
 ## 🚀 Quick Install
 
+### Option 1: Homebrew (Recommended)
+```bash
+brew tap jadenb9/tap
+brew install mode-terminal-navigator
+```
+
+### Option 2: One-Line Installer
 ```bash
 curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal-navigator/main/install_one_line.sh | bash
 ```
