@@ -1,0 +1,35 @@
+{
+  "github_username": "JadenB9",
+  "projects_path": "/Users/jaden/Library/Mobile Documents/com~apple~CloudDocs/Projects",
+  "default_directory": "/Users/jaden",
+  "terminal_theme": "dark",
+  "auto_clear_screen": true,
+  "show_help_text": true,
+  "recent_projects": [
+    "/Users/jaden/Library/Mobile Documents/com~apple~CloudDocs/Projects/testingmode",
+    "/Users/jaden/Library/Mobile Documents/com~apple~CloudDocs/Projects/GeminiTest",
+    "/Users/jaden/Library/Mobile Documents/com~apple~CloudDocs/Projects/MazeGenerator"
+  ],
+  "aliases": {},
+  "database_connections": [],
+  "common_ports": [
+    3000,
+    8000,
+    8080,
+    5000,
+    4000,
+    9000,
+    3001,
+    8001,
+    5432,
+    3306,
+    27017
+  ],
+  "ai_assistant": {
+    "model": "dolphin-mistral:7b",
+    "max_command_timeout": 30,
+    "require_confirmation": true,
+    "allowed_base_path": "/Users/jaden",
+    "log_commands": true
+  }
+}
