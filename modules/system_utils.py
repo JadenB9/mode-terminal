@@ -197,11 +197,11 @@ class SystemUtils:
                     
             # Display results
             if suspicious_processes:
-                self.console.print(f"[red]⚠️ Found {len(suspicious_processes)} suspicious processes[/red]")
+                self.console.print(f"[red]WARNING: Found {len(suspicious_processes)} suspicious processes[/red]")
                 for proc in suspicious_processes:
                     self.console.print(f"  • {proc['name']} (PID: {proc['pid']})")
             else:
-                self.console.print("[green]✅ No suspicious processes found[/green]")
+                self.console.print("[green]OK: No suspicious processes found[/green]")
                 
             if high_cpu_processes:
                 self.console.print(f"\n[yellow]High CPU processes:[/yellow]")
@@ -217,9 +217,9 @@ class SystemUtils:
                     
                     # Simple check for very old versions
                     if 'macOS 10' in result.stdout:
-                        self.console.print("[yellow]⚠️ Consider updating to a newer macOS version[/yellow]")
+                        self.console.print("[yellow]WARNING: Consider updating to a newer macOS version[/yellow]")
                     else:
-                        self.console.print("[green]✅ Running recent macOS version[/green]")
+                        self.console.print("[green]OK: Running recent macOS version[/green]")
                         
             except Exception:
                 self.console.print("[yellow]Unable to check system version[/yellow]")
@@ -242,7 +242,7 @@ class SystemUtils:
                 tm_result = subprocess.run(['tmutil', 'status'], capture_output=True, text=True)
                 if tm_result.returncode == 0:
                     if 'Running = 1' in tm_result.stdout:
-                        self.console.print("[green]✅ Time Machine backup in progress[/green]")
+                        self.console.print("[green]OK: Time Machine backup in progress[/green]")
                     elif 'Running = 0' in tm_result.stdout:
                         self.console.print("[blue]Time Machine idle[/blue]")
                         
@@ -251,9 +251,9 @@ class SystemUtils:
                     if tm_date_result.returncode == 0 and tm_date_result.stdout.strip():
                         self.console.print(f"[green]Last backup: {tm_date_result.stdout.strip()}[/green]")
                     else:
-                        self.console.print("[yellow]⚠️ No Time Machine backups found[/yellow]")
+                        self.console.print("[yellow]WARNING: No Time Machine backups found[/yellow]")
                 else:
-                    self.console.print("[red]❌ Time Machine not available or not configured[/red]")
+                    self.console.print("[red]ERROR: Time Machine not available or not configured[/red]")
                     
             except Exception:
                 self.console.print("[yellow]Unable to check Time Machine status[/yellow]")
@@ -275,15 +275,15 @@ class SystemUtils:
                             total_size += item.stat().st_size
                             file_count += 1
                             
-                    self.console.print(f"[green]✅ iCloud Drive active[/green]")
+                    self.console.print(f"[green]OK: iCloud Drive active[/green]")
                     self.console.print(f"[blue]Files: {file_count:,}[/blue]")
                     self.console.print(f"[blue]Total size: {self.format_bytes(total_size)}[/blue]")
                     
                 except Exception:
-                    self.console.print("[green]✅ iCloud Drive available (unable to calculate size)[/green]")
+                    self.console.print("[green]OK: iCloud Drive available (unable to calculate size)[/green]")
                     
             else:
-                self.console.print("[red]❌ iCloud Drive not found or not syncing[/red]")
+                self.console.print("[red]ERROR: iCloud Drive not found or not syncing[/red]")
                 
         except Exception as e:
             self.console.print(f"[red]Error checking backup status: {e}[/red]")

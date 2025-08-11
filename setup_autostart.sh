@@ -3,12 +3,12 @@
 # Mode Terminal Navigator Auto-Start Setup
 # This script helps set up Mode to run automatically when you open a new terminal
 
-echo "🚀 Setting up Mode Terminal Navigator to run on terminal startup..."
+echo "> Setting up Mode Terminal Navigator to run on terminal startup..."
 echo
 
 # Check if mode command exists
 if ! command -v mode &> /dev/null && ! [ -f ~/.local/bin/mode ]; then
-    echo "❌ Mode command not found. Please run the installer first:"
+    echo "ERROR: Mode command not found. Please run the installer first:"
     echo "cd ~/.mode && ./install.sh"
     exit 1
 fi
@@ -46,7 +46,7 @@ case $choice in
             echo "Auto-start already configured in ~/.zshrc"
         fi
         
-        echo "✅ Mode will now run automatically when you open a new terminal"
+        echo "OK: Mode will now run automatically when you open a new terminal"
         ;;
         
     2)
@@ -62,7 +62,7 @@ case $choice in
             echo "Auto-start already configured in ~/.zshrc"
         fi
         
-        echo "✅ Mode will run in new terminal windows (but not tabs or tmux)"
+        echo "OK: Mode will run in new terminal windows (but not tabs or tmux)"
         ;;
         
     3)
@@ -80,7 +80,7 @@ case $choice in
             echo "Auto-start already configured in ~/.zshrc"
         fi
         
-        echo "✅ Mode will prompt with 3-second timeout (defaults to yes)"
+        echo "OK: Mode will prompt with 3-second timeout (defaults to yes)"
         ;;
         
     4)
@@ -94,7 +94,7 @@ case $choice in
             # Remove the auto-start section
             sed -i '' '/# Mode Terminal Navigator Auto-Start/,/^$/d' ~/.zshrc
             
-            echo "✅ Mode auto-start removed from ~/.zshrc"
+            echo "OK: Mode auto-start removed from ~/.zshrc"
             echo "Backup saved as ~/.zshrc.backup.*"
         else
             echo "No Mode auto-start configuration found in ~/.zshrc"
@@ -108,7 +108,7 @@ case $choice in
 esac
 
 echo
-echo "📝 Note: You'll need to restart your terminal or run 'source ~/.zshrc' for changes to take effect"
+echo "NOTE: You'll need to restart your terminal or run 'source ~/.zshrc' for changes to take effect"
 echo
-echo "🎯 Pro tip: Use 'Normal Use' in Mode to return to regular terminal in your home directory"
-echo "🗂️  Pro tip: Use 'File System' in Mode to go straight to iCloud Drive and see contents"
+echo "TIP: Use 'Normal Use' in Mode to return to regular terminal in your home directory"
+echo "TIP: Use 'File System' in Mode to go straight to iCloud Drive and see contents"

@@ -406,10 +406,10 @@ class DevTools:
                                   if p['process'] is None or p['process'].get('name') == 'Unknown']
                 
                 if suspicious_ports:
-                    self.console.print(f"\n[yellow]⚠️ Found {len(suspicious_ports)} ports with unknown processes[/yellow]")
+                    self.console.print(f"\n[yellow]WARNING: Found {len(suspicious_ports)} ports with unknown processes[/yellow]")
                     self.console.print("[yellow]Consider investigating these ports for security[/yellow]")
                 else:
-                    self.console.print("\n[green]✅ All active ports have known processes[/green]")
+                    self.console.print("\n[green]OK: All active ports have known processes[/green]")
                     
             else:
                 self.console.print("[green]No active ports found on the scanned range.[/green]")
@@ -456,7 +456,7 @@ class DevTools:
             self.console.print()
             
             self.console.print("[blue]This feature tests connectivity to database configurations found in projects.[/blue]")
-            self.console.print("[yellow]⚠️ Connection testing is not yet implemented.[/yellow]")
+            self.console.print("[yellow]WARNING: Connection testing is not yet implemented.[/yellow]")
             self.console.print()
             
             self.console.print("Planned features:")
@@ -645,7 +645,7 @@ class DevTools:
                 with open(zshrc_path, 'a') as f:
                     f.write(f'\n{alias_string}\n')
                     
-                self.console.print(f"[green]✅ Alias '{alias_name}' added successfully![/green]")
+                self.console.print(f"[green]OK: Alias '{alias_name}' added successfully![/green]")
                 self.console.print("[yellow]Run 'source ~/.zshrc' or restart terminal to use the new alias.[/yellow]")
                 
                 # Update config
@@ -742,9 +742,9 @@ class DevTools:
                 result = subprocess.run(['brew', 'update'], capture_output=True, text=True)
                 self.console.print("\033[A\033[K", end="")  # Clear progress line
                 if result.returncode == 0:
-                    self.console.print("[green]✅ Homebrew updated successfully[/green]")
+                    self.console.print("[green]OK: Homebrew updated successfully[/green]")
                 else:
-                    self.console.print("[red]❌ Error updating Homebrew[/red]")
+                    self.console.print("[red]ERROR: Error updating Homebrew[/red]")
                     
             elif choice == 'List installed packages':
                 result = subprocess.run(['brew', 'list'], capture_output=True, text=True)
@@ -761,9 +761,9 @@ class DevTools:
                 result = subprocess.run(['brew', 'cleanup'], capture_output=True, text=True)
                 self.console.print("\033[A\033[K", end="")  # Clear progress line
                 if result.returncode == 0:
-                    self.console.print("[green]✅ Cleanup completed[/green]")
+                    self.console.print("[green]OK: Cleanup completed[/green]")
                 else:
-                    self.console.print("[red]❌ Error during cleanup[/red]")
+                    self.console.print("[red]ERROR: Error during cleanup[/red]")
                     
         except Exception as e:
             self.console.print(f"[red]Error in brew manager: {e}[/red]")
@@ -828,9 +828,9 @@ class DevTools:
             try:
                 import socket
                 ip = socket.gethostbyname('google.com')
-                self.console.print(f"[green]✅ google.com resolves to {ip}[/green]")
+                self.console.print(f"[green]OK: google.com resolves to {ip}[/green]")
             except:
-                self.console.print("[red]❌ DNS resolution failed[/red]")
+                self.console.print("[red]ERROR: DNS resolution failed[/red]")
                 
         except Exception as e:
             self.console.print(f"[red]Error in network diagnostics: {e}[/red]")
@@ -847,16 +847,16 @@ class DevTools:
             self.console.print("[blue]Academic workflow tools and study management.[/blue]")
             self.console.print()
             
-            self.console.print("[yellow]🚧 Coming Soon - This feature is in development[/yellow]")
+            self.console.print("[yellow]WARNING: Coming Soon - This feature is in development[/yellow]")
             self.console.print()
             
             self.console.print("Planned features:")
-            self.console.print("• 📚 Assignment and homework tracking")
-            self.console.print("• ⏱️  Study session timers with Pomodoro technique") 
-            self.console.print("• 📊 Grade calculation and GPA tracking")
-            self.console.print("• 📅 Class schedule management")
-            self.console.print("• 📝 Note-taking integration")
-            self.console.print("• 🔗 LMS integration (Canvas, Blackboard, etc.)")
+            self.console.print("• > Assignment and homework tracking")
+            self.console.print("• > Study session timers with Pomodoro technique") 
+            self.console.print("• > Grade calculation and GPA tracking")
+            self.console.print("• > Class schedule management")
+            self.console.print("• > Note-taking integration")
+            self.console.print("• > LMS integration (Canvas, Blackboard, etc.)")
             self.console.print()
             
             self.console.print("[dim]This feature will integrate with your academic workflow to help manage")
@@ -877,16 +877,16 @@ class DevTools:
             self.console.print("[blue]Connect to messaging services and communication platforms.[/blue]")
             self.console.print()
             
-            self.console.print("[yellow]🚧 In Development - Communication integration tools[/yellow]")
+            self.console.print("[yellow]WARNING: In Development - Communication integration tools[/yellow]")
             self.console.print()
             
             self.console.print("Planned features:")
-            self.console.print("• 💬 Slack workspace integration and notifications")
-            self.console.print("• 🎮 Discord bot integration and server management") 
-            self.console.print("• 📧 Email alerts and automation")
-            self.console.print("• 📱 SMS notifications for important events")
-            self.console.print("• 🔔 Custom webhook integrations")
-            self.console.print("• 📊 Message analytics and insights")
+            self.console.print("• > Slack workspace integration and notifications")
+            self.console.print("• > Discord bot integration and server management") 
+            self.console.print("• > Email alerts and automation")
+            self.console.print("• > SMS notifications for important events")
+            self.console.print("• > Custom webhook integrations")
+            self.console.print("• > Message analytics and insights")
             self.console.print()
             
             self.console.print("[dim]This feature will help you stay connected with your team and")

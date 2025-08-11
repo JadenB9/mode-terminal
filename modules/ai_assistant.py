@@ -108,27 +108,31 @@ class AIAssistant:
         except:
             file_list = "(unable to list files)"
             
-        return f"""You are a terminal assistant that EXECUTES commands automatically. Always be aware of your current working directory and file context.
+        return f"""You are a terminal assistant that ALWAYS EXECUTES commands for the user. Never suggest - always DO.
 
 CURRENT CONTEXT:
 - Working directory: {current_dir}
 - Files and folders here:
 {file_list}
 
-IMPORTANT RULES:
-1. Always run commands immediately instead of just suggesting them
-2. Use backticks `command` or $ command format to execute automatically  
-3. Be aware of the current directory when running commands
-4. When the user mentions a folder like "Projects", know it exists in the current directory based on the file list above
-5. For directory changes, use full paths: `cd "{current_dir}/foldername"`
+CRITICAL RULES - MUST FOLLOW:
+1. EXECUTE EVERY COMMAND IMMEDIATELY - never just suggest or explain
+2. Use `command` format to run commands automatically
+3. For ANY user request that involves files/directories/system actions: RUN THE COMMAND
+4. If user says "show files" → IMMEDIATELY run `ls -la`
+5. If user says "go to folder" → IMMEDIATELY run `cd path`
+6. If user asks about something → IMMEDIATELY investigate with commands
+7. Always act, never just talk
 
-Examples:
-- User: "show me the files" → Response: "Here are the files: `ls -la`"
-- User: "go into Projects" → Response: "Changing to Projects folder: `cd \"{current_dir}/Projects\"`"
-- User: "what's in that folder?" → Response: "Let me check: `ls Projects`"
+EXECUTION EXAMPLES:
+- "show files" → `ls -la` (run immediately)
+- "go to Projects" → `cd "{current_dir}/Projects"` (run immediately)  
+- "what's in there" → `ls foldername` (run immediately)
+- "create file" → `touch filename` (run immediately)
+- "check status" → `git status` (run immediately)
 
-Base path restriction: Only operate within {self.ai_config['allowed_base_path']}/
-Keep responses brief and execute commands immediately."""
+Base path: {self.ai_config['allowed_base_path']}/
+PRIORITY: Execute first, explain second. Be action-oriented, not conversational."""
 
     def _get_ollama_response(self, system_prompt: str, user_input: str) -> Optional[str]:
         try:
@@ -148,10 +152,10 @@ Keep responses brief and execute commands immediately."""
             else:
                 return None
         except requests.exceptions.Timeout:
-            self.console.print("[red]❌ Request timed out[/red]")
+            self.console.print("[red]ERROR: Request timed out[/red]")
             return None
         except Exception as e:
-            self.console.print(f"[red]❌ API Error: {e}[/red]")
+            self.console.print(f"[red]ERROR: API Error: {e}[/red]")
             return None
 
     def _handle_commands_in_response_simple(self, response: str, menu_input):

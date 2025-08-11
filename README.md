@@ -1,8 +1,24 @@
-# Mode Terminal
+# Mode Terminal v1.0 🚀
 
 An interactive terminal application for navigating and managing development workflows on macOS with integrated AI assistant.
 
-## 🚀 Quick Install
+## > Version 1.0 Release Notes
+
+**Major Features Added:**
+- **Claude Code-Style Chat Interface**: Expandable input box with live typing and color changes
+- **Enhanced AI Command Execution**: AI now automatically executes commands instead of just suggesting
+- **Improved Visual Formatting**: Nice message boxes with proper chat order (newest at bottom)
+- **Tab Navigation**: Press Tab to enter/exit AI chat mode seamlessly
+- **Live Input Box**: Input box expands as you type with visual feedback
+- **Clean Code Architecture**: Removed unused code and optimized for production
+
+**Perfect for developers who want:**
+- Natural language terminal control
+- Smooth workflow navigation  
+- AI-powered command execution
+- Professional terminal UI
+
+## > Quick Install
 
 ### Option 1: Homebrew (Recommended)
 ```bash
@@ -19,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal/main/install_
 
 ## Features
 
-### 🤖 AI Assistant (NEW!)
+### > AI Assistant (NEW)
 - **Natural Language Commands**: Ask the AI to run commands for you in plain English
 - **Live Terminal Integration**: AI executes commands directly and shows results
 - **Smart Command Understanding**: "show me the files" → automatically runs `ls -la`
@@ -27,30 +43,30 @@ curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal/main/install_
 - **Interactive Chat**: Type directly in a live input box with chat history
 - **Powered by Dolphin Mixtral**: Local AI model via Ollama integration
 
-### 🏠 Project & Development Management
+### > Project & Development Management
 - **New Git Project**: Create new projects with Git initialization and GitHub integration
 - **Clone Repository**: Clone existing repositories from GitHub  
 - **Project Switcher**: Navigate between existing projects with last-modified dates
 - **Environment Setup**: Auto-setup for React/Next.js, Node.js, Python, and more
 
-### 🗂️ File System & Organization
+### > File System & Organization
 - **Quick Navigation**: Fast access to Desktop, Documents, Downloads, Applications
 - **iCloud Drive Browser**: Navigate through iCloud Drive folders with file preview
 - **Directory Contents**: View file listings with sizes and modification dates
 
-### 🛠️ Development Tools
+### > Development Tools
 - **Database Explorer**: Find and examine database configurations in projects
 - **Port Scanner**: Scan for active services on common development ports
 - **Process Monitor**: View running processes with security checks
 
-### ⚙️ System & Maintenance  
+### > System & Maintenance  
 - **Brew Manager**: Update, search, and manage Homebrew packages
 - **System Info**: CPU, memory, disk usage with detailed statistics
 - **Network Diagnostics**: Connectivity tests, DNS resolution, basic speed tests
 - **Security Scan**: Check for suspicious processes and outdated software
 - **Backup Status**: Verify Time Machine and iCloud sync status
 
-### 🔧 Utilities
+### > Utilities
 - **Alias Creator**: Create and manage terminal aliases with automatic .zshrc integration
 - **Configuration Management**: Persistent settings and preferences
 
@@ -62,7 +78,7 @@ curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal/main/install_
 - Terminal or iTerm2
 - Ollama (for AI assistant features)
 
-### 🚀 One-Line Install (Recommended)
+### > One-Line Install (Recommended)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/JadenB9/mode-terminal/main/install_one_line.sh | bash
@@ -337,4 +353,4 @@ For issues, questions, or feature requests, please check:
 
 ---
 
-**Happy navigating! 🧭**
+**Happy navigating!**

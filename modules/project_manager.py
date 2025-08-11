@@ -139,16 +139,16 @@ class ProjectManager:
                 create_remote = confirm("Create remote GitHub repository?")
                 if create_remote:
                     subprocess.run(['gh', 'repo', 'create', project_name, '--public', '--push'], check=True)
-                    self.console.print(f"[green]✅ Created GitHub repository: {self.config['github_username']}/{project_name}[/green]")
+                    self.console.print(f"[green]OK: Created GitHub repository: {self.config['github_username']}/{project_name}[/green]")
             except subprocess.CalledProcessError:
-                self.console.print("[yellow]⚠️ GitHub CLI not available. Repository created locally only.[/yellow]")
+                self.console.print("[yellow]WARNING: GitHub CLI not available. Repository created locally only.[/yellow]")
             except FileNotFoundError:
-                self.console.print("[yellow]⚠️ GitHub CLI not found. Repository created locally only.[/yellow]")
+                self.console.print("[yellow]WARNING: GitHub CLI not found. Repository created locally only.[/yellow]")
                 
             # Update recent projects
             self.add_to_recent_projects(str(project_path))
             
-            self.console.print(f"[green]✅ Project '{project_name}' created successfully![/green]")
+            self.console.print(f"[green]OK: Project '{project_name}' created successfully![/green]")
             self.console.print(f"[blue]Location: {project_path}[/blue]")
             
             # Ask if user wants to switch to the project
@@ -375,9 +375,9 @@ class ProjectManager:
             subprocess.run(['npm', 'init', '-y'], check=True)
             subprocess.run(['npm', 'install', 'react', 'react-dom', 'next'], check=True)
             subprocess.run(['npm', 'install', '--save-dev', '@types/react', '@types/node', 'typescript'], check=True)
-            self.console.print("[green]✅ React environment set up successfully![/green]")
+            self.console.print("[green]OK: React environment set up successfully![/green]")
         except subprocess.CalledProcessError:
-            self.console.print("[red]❌ Failed to set up React environment. Make sure npm is installed.[/red]")
+            self.console.print("[red]ERROR: Failed to set up React environment. Make sure npm is installed.[/red]")
             
     def setup_nodejs_env(self):
         """Set up Node.js environment"""
@@ -385,19 +385,19 @@ class ProjectManager:
             subprocess.run(['npm', 'init', '-y'], check=True)
             subprocess.run(['npm', 'install', 'express', 'cors', 'dotenv'], check=True)
             subprocess.run(['npm', 'install', '--save-dev', 'nodemon', '@types/node'], check=True)
-            self.console.print("[green]✅ Node.js environment set up successfully![/green]")
+            self.console.print("[green]OK: Node.js environment set up successfully![/green]")
         except subprocess.CalledProcessError:
-            self.console.print("[red]❌ Failed to set up Node.js environment. Make sure npm is installed.[/red]")
+            self.console.print("[red]ERROR: Failed to set up Node.js environment. Make sure npm is installed.[/red]")
             
     def setup_python_env(self):
         """Set up Python environment"""
         try:
             subprocess.run(['python3', '-m', 'venv', 'venv'], check=True)
             subprocess.run(['pip', 'install', 'flask', 'requests', 'python-dotenv'], check=True)
-            self.console.print("[green]✅ Python environment set up successfully![/green]")
+            self.console.print("[green]OK: Python environment set up successfully![/green]")
             self.console.print("[blue]Don't forget to activate the virtual environment: source venv/bin/activate[/blue]")
         except subprocess.CalledProcessError:
-            self.console.print("[red]❌ Failed to set up Python environment. Make sure Python 3 is installed.[/red]")
+            self.console.print("[red]ERROR: Failed to set up Python environment. Make sure Python 3 is installed.[/red]")
             
     def get_gitignore_for_type(self, project_type: str) -> str:
         """Get appropriate .gitignore content for project type"""

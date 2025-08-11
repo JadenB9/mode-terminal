@@ -1,5 +1,8 @@
 #!/Library/Frameworks/Python.framework/Versions/3.12/bin/python3
 
+# Mode Terminal v1.0 - Interactive terminal navigator with AI assistant
+# https://github.com/JadenB9/mode-terminal
+
 import sys
 sys.path.append('/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages')
 import os
@@ -388,7 +391,7 @@ For more information, visit: https://github.com/JadenB9/mode-terminal-navigator
         # Re-raise SystemExit to allow proper exit codes (like exit code 42)
         raise
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"ERROR: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

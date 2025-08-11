@@ -77,14 +77,14 @@ class Utilities:
                 
             # Validate alias name
             if not alias_name.replace('_', '').replace('-', '').isalnum():
-                self.console.print("[red]❌ Alias name can only contain letters, numbers, hyphens, and underscores[/red]")
+                self.console.print("[red]ERROR: Alias name can only contain letters, numbers, hyphens, and underscores[/red]")
                 input("Press Enter to continue...")
                 return
                 
             # Check if alias already exists
             existing_aliases = self.get_existing_aliases()
             if alias_name in existing_aliases:
-                self.console.print(f"[yellow]⚠️ Alias '{alias_name}' already exists:[/yellow]")
+                self.console.print(f"[yellow]WARNING: Alias '{alias_name}' already exists:[/yellow]")
                 self.console.print(f"[dim]{existing_aliases[alias_name]}[/dim]")
                 
                 if not confirm("Do you want to overwrite it?"):
@@ -106,7 +106,7 @@ class Utilities:
             # Add alias to config and .zshrc
             self.add_alias(alias_name, command)
             
-            self.console.print(f"[green]✅ Alias '{alias_name}' added successfully![/green]")
+            self.console.print(f"[green]OK: Alias '{alias_name}' added successfully![/green]")
             self.console.print("[blue]Restart your terminal or run 'source ~/.zshrc' to use the new alias[/blue]")
             
         except Exception as e:
@@ -206,10 +206,10 @@ class Utilities:
                     if 'aliases' in self.config and choice in self.config['aliases']:
                         del self.config['aliases'][choice]
                         
-                    self.console.print(f"[green]✅ Alias '{choice}' removed successfully![/green]")
+                    self.console.print(f"[green]OK: Alias '{choice}' removed successfully![/green]")
                     self.console.print("[blue]Restart your terminal or run 'source ~/.zshrc' to apply changes[/blue]")
                 else:
-                    self.console.print(f"[red]❌ Failed to remove alias '{choice}'[/red]")
+                    self.console.print(f"[red]ERROR: Failed to remove alias '{choice}'[/red]")
                     
                 input("Press Enter to continue...")
                 
@@ -236,10 +236,10 @@ class Utilities:
                     # Remove old alias and add new one
                     if self.remove_alias_from_zshrc(choice):
                         self.add_alias(choice, new_command)
-                        self.console.print(f"[green]✅ Alias '{choice}' updated successfully![/green]")
+                        self.console.print(f"[green]OK: Alias '{choice}' updated successfully![/green]")
                         self.console.print("[blue]Restart your terminal or run 'source ~/.zshrc' to apply changes[/blue]")
                     else:
-                        self.console.print(f"[red]❌ Failed to update alias '{choice}'[/red]")
+                        self.console.print(f"[red]ERROR: Failed to update alias '{choice}'[/red]")
                         
                     input("Press Enter to continue...")
                     
@@ -333,7 +333,7 @@ class Utilities:
         self.console.print(Panel("Messenger Integration", style="bold blue"))
         self.console.print()
         
-        self.console.print("[yellow]🚧 Messenger Integration is in development[/yellow]")
+        self.console.print("[yellow]WARNING: Messenger Integration is in development[/yellow]")
         self.console.print()
         self.console.print("Planned features:")
         self.console.print("• Slack integration")

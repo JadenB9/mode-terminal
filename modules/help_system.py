@@ -94,25 +94,25 @@ class HelpSystem:
         guide_text = """
 [bold cyan]Welcome to Mode Terminal Navigator![/bold cyan]
 
-[yellow]🚀 Getting Started:[/yellow]
+[yellow]> Getting Started:[/yellow]
 1. Use ↑↓ arrow keys to navigate menus
 2. Press Enter to select an option
 3. Press 'b' or Ctrl+C to go back
 4. Press 'h' in any menu for help
 
-[yellow]🏠 First Steps:[/yellow]
+[yellow]> First Steps:[/yellow]
 • Try "Normal Use" to return to regular terminal
 • Explore "Project & Development" to manage code projects
 • Use "File System & Organization" for quick navigation
 • Check "System & Maintenance" for system health
 
-[yellow]⚡ Pro Tips:[/yellow]
+[yellow]> Pro Tips:[/yellow]
 • Most operations return you to the same menu section
 • Configuration is saved automatically
 • Create aliases in Utilities for frequently used commands
 • Use Project Switcher to quickly jump between projects
 
-[yellow]❓ Need More Help?:[/yellow]
+[yellow]> Need More Help?:[/yellow]
 • Press 'h' in any menu for context-sensitive help
 • Check the full Feature Overview for detailed explanations
 • Visit Configuration Guide to customize your experience
@@ -174,7 +174,7 @@ Main Menu → Sub Menu → Action → [bold green]Back to Sub Menu[/bold green]
         self.console.print()
         
         # Project Management Features
-        proj_table = Table(title="🏠 Project & Development Management", show_header=True)
+        proj_table = Table(title="> Project & Development Management", show_header=True)
         proj_table.add_column("Feature", style="cyan", width=20)
         proj_table.add_column("Description", style="white", width=50)
         
@@ -187,7 +187,7 @@ Main Menu → Sub Menu → Action → [bold green]Back to Sub Menu[/bold green]
         self.console.print()
         
         # File System Features  
-        file_table = Table(title="🗂️ File System & Organization", show_header=True)
+        file_table = Table(title="> File System & Organization", show_header=True)
         file_table.add_column("Feature", style="cyan", width=20)
         file_table.add_column("Description", style="white", width=50)
         
@@ -200,7 +200,7 @@ Main Menu → Sub Menu → Action → [bold green]Back to Sub Menu[/bold green]
         self.console.print()
         
         # Development Tools
-        dev_table = Table(title="🛠️ Development Tools", show_header=True)
+        dev_table = Table(title="> Development Tools", show_header=True)
         dev_table.add_column("Feature", style="cyan", width=20)
         dev_table.add_column("Description", style="white", width=50)
         
@@ -213,7 +213,7 @@ Main Menu → Sub Menu → Action → [bold green]Back to Sub Menu[/bold green]
         self.console.print()
         
         # System & Maintenance
-        sys_table = Table(title="⚙️ System & Maintenance", show_header=True)
+        sys_table = Table(title="> System & Maintenance", show_header=True)
         sys_table.add_column("Feature", style="cyan", width=20)
         sys_table.add_column("Description", style="white", width=50)
         
@@ -227,7 +227,7 @@ Main Menu → Sub Menu → Action → [bold green]Back to Sub Menu[/bold green]
         self.console.print()
         
         # Utilities
-        util_table = Table(title="🔧 Utilities", show_header=True)
+        util_table = Table(title="> Utilities", show_header=True)
         util_table.add_column("Feature", style="cyan", width=20)
         util_table.add_column("Description", style="white", width=50)
         
@@ -257,7 +257,7 @@ Main Menu → Sub Menu → Action → [bold green]Back to Sub Menu[/bold green]
 • Auto Clear Screen: [green]{self.config.get('auto_clear_screen', True)}[/green]
 • Show Help Text: [green]{self.config.get('show_help_text', True)}[/green]
 
-[yellow]📝 Editable Settings:[/yellow]
+[yellow]> Editable Settings:[/yellow]
 
 [bold]github_username[/bold] - Your GitHub username for repo operations
 [bold]projects_path[/bold] - Default location for project files  
@@ -266,13 +266,13 @@ Main Menu → Sub Menu → Action → [bold green]Back to Sub Menu[/bold green]
 [bold]show_help_text[/bold] - Display contextual help for options
 [bold]common_ports[/bold] - Ports to scan in port scanner tool
 
-[yellow]🔧 How to Edit:[/yellow]
+[yellow]> How to Edit:[/yellow]
 1. Edit ~/.mode/config.json directly with any text editor
 2. Changes are loaded automatically on next Mode launch
 3. Invalid JSON will show an error message
 4. Backup your config before making major changes
 
-[yellow]🔄 Reset Configuration:[/yellow]
+[yellow]> Reset Configuration:[/yellow]
 Delete ~/.mode/config.json and restart Mode to restore defaults
         """
         
@@ -341,51 +341,51 @@ Delete ~/.mode/config.json and restart Mode to restore defaults
         self.console.print()
         
         tips_text = """
-[bold green]💡 Pro Tips:[/bold green]
+[bold green]> Pro Tips:[/bold green]
 
-[yellow]🚀 Productivity Shortcuts:[/yellow]
+[yellow]> Productivity Shortcuts:[/yellow]
 • Use Project Switcher to quickly jump between recent projects
 • Create aliases for frequently used directory paths
 • Set up environment templates for new project types
 • Use Port Scanner to check what services are running
 
-[yellow]⚡ Advanced Navigation:[/yellow]
+[yellow]> Advanced Navigation:[/yellow]
 • Press 'b' in any menu to go back quickly
 • Use Ctrl+C for instant exit from any operation
 • Operations return you to the same section for efficiency
 • Help ('h') is context-aware and shows relevant info
 
-[yellow]🎯 Workflow Optimization:[/yellow]
+[yellow]> Workflow Optimization:[/yellow]
 • Keep your Projects folder organized by type
 • Use descriptive project names for easy switching  
 • Regularly clean up with Brew Manager
 • Monitor system health with System Info
 
-[yellow]🔧 Customization Tricks:[/yellow]
+[yellow]> Customization Tricks:[/yellow]
 • Edit ~/.mode/config.json for personalized settings
 • Add custom ports to common_ports for your stack
 • Disable auto_clear_screen if you prefer persistent output
 • Set show_help_text to false once you know the features
 
-[yellow]🛡️ Security Best Practices:[/yellow]
+[yellow]> Security Best Practices:[/yellow]
 • Run Security Scan periodically
 • Check Port Scanner results for unknown services
 • Keep Homebrew packages updated
 • Monitor backup status regularly
 
-[yellow]📂 Project Management:[/yellow]
+[yellow]> Project Management:[/yellow]
 • Use consistent naming conventions for projects
 • Initialize Git from the start with New Git Project
 • Link projects to GitHub early in development
 • Use Environment Setup for quick project scaffolding
 
-[yellow]🔍 Debugging & Development:[/yellow]
+[yellow]> Debugging & Development:[/yellow]
 • Use Database Explorer to find connection configs
 • Port Scanner helps debug service conflicts
 • System Info shows resource usage during development
 • Network Diagnostics troubleshoots connectivity issues
 
-[bold cyan]🎉 Hidden Features:[/bold cyan]
+[bold cyan]> Hidden Features:[/bold cyan]
 • Press 'q' in some contexts for quick quit
 • Tab completion works in text inputs
 • Recent projects are automatically tracked
@@ -403,7 +403,7 @@ Delete ~/.mode/config.json and restart Mode to restore defaults
         self.console.print()
         
         # Navigation Controls Table
-        nav_table = Table(title="🎮 Navigation Controls", show_header=True)
+        nav_table = Table(title="> Navigation Controls", show_header=True)
         nav_table.add_column("Key", style="cyan", width=8)
         nav_table.add_column("Action", style="white", width=25)
         nav_table.add_column("Context", style="green", width=15)
@@ -419,7 +419,7 @@ Delete ~/.mode/config.json and restart Mode to restore defaults
         
         # Main Features
         features_text = """
-[bold cyan]🏠 Main Features:[/bold cyan]
+[bold cyan]> Main Features:[/bold cyan]
 • [yellow]Normal Use[/yellow] - Return to terminal
 • [yellow]Projects[/yellow] - Git repos, environment setup
 • [yellow]File System[/yellow] - Navigate directories, iCloud
@@ -427,13 +427,13 @@ Delete ~/.mode/config.json and restart Mode to restore defaults
 • [yellow]System[/yellow] - Homebrew, system info, security
 • [yellow]Utilities[/yellow] - Aliases, configuration
 
-[bold cyan]⚡ Pro Tips:[/bold cyan]
+[bold cyan]> Pro Tips:[/bold cyan]
 • Operations return to same menu section
 • Press 'h' for context-sensitive help
 • Configuration auto-saves changes
 • Use Project Switcher for quick jumping
 
-[bold cyan]🔧 Files:[/bold cyan]
+[bold cyan]> Files:[/bold cyan]
 • Config: [green]~/.mode/config.json[/green]
 • Docs: [green]~/.mode/README.md[/green]
 • Setup: [green]~/.mode/setup_python.py[/green]

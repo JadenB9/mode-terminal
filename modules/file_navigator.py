@@ -5,6 +5,7 @@ from typing import Dict, List, Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from inquirer import list_input, confirm
 from menu_input import show_menu
 
 class FileNavigator:
@@ -58,27 +59,27 @@ class FileNavigator:
         # Standard directories
         nav_options = [
             {
-                'name': '🖥️ Desktop',
+                'name': '> Desktop',
                 'path': home_path / 'Desktop',
                 'description': 'Navigate to Desktop folder'
             },
             {
-                'name': '📄 Documents', 
+                'name': '> Documents', 
                 'path': home_path / 'Documents',
                 'description': 'Navigate to Documents folder'
             },
             {
-                'name': '⬇️ Downloads',
+                'name': '> Downloads',
                 'path': home_path / 'Downloads', 
                 'description': 'Navigate to Downloads folder'
             },
             {
-                'name': '📱 Applications',
+                'name': '> Applications',
                 'path': Path('/Applications'),
                 'description': 'Navigate to Applications folder'
             },
             {
-                'name': '☁️ iCloud Drive',
+                'name': '> iCloud Drive',
                 'path': home_path / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs',
                 'description': 'Navigate to iCloud Drive with folder browser'
             }
@@ -86,7 +87,7 @@ class FileNavigator:
         
         # Add back option
         nav_options.append({
-            'name': '🔙 Back to File System Menu',
+            'name': '> Back to File System Menu',
             'path': None,
             'description': 'Return to File System & Organization menu'
         })
@@ -110,7 +111,7 @@ class FileNavigator:
                 if selected_option['path'] is None:  # Back option
                     return 'continue'
                     
-                if selected_option['name'] == '☁️ iCloud Drive':
+                if selected_option['name'] == '> iCloud Drive':
                     result = self.browse_icloud_drive()
                     if result == 'exit':
                         return 'exit'
@@ -200,7 +201,7 @@ class FileNavigator:
                 # Add parent directory option (if not at root)
                 if current_path != directory:
                     options.append({
-                        'name': '📁 .. (Parent Directory)',
+                        'name': '> .. (Parent Directory)',
                         'type': 'parent',
                         'path': current_path.parent
                     })
@@ -208,7 +209,7 @@ class FileNavigator:
                 # Add folders
                 for folder in sorted(folders):
                     options.append({
-                        'name': f'📁 {folder.name}',
+                        'name': f'> {folder.name}',
                         'type': 'folder',
                         'path': folder
                     })
@@ -216,12 +217,12 @@ class FileNavigator:
                 # Add action options
                 options.extend([
                     {
-                        'name': f'📍 Select Current Directory ({current_path.name})',
+                        'name': f'> Select Current Directory ({current_path.name})',
                         'type': 'select',
                         'path': current_path
                     },
                     {
-                        'name': '🔙 Back to Quick Navigation',
+                        'name': '> Back to Quick Navigation',
                         'type': 'back',
                         'path': None
                     }
@@ -266,12 +267,12 @@ class FileNavigator:
                     stat = item.stat()
                     size = self.format_size(stat.st_size) if item.is_file() else "—"
                     modified = self.format_timestamp(stat.st_mtime)
-                    item_type = "📁 Dir" if item.is_dir() else "📄 File"
+                    item_type = "> Dir" if item.is_dir() else "> File"
                     
                     items.append((item_type, item.name, size, modified))
                     
             # Sort: directories first, then files, both alphabetically
-            items.sort(key=lambda x: (x[0] != "📁 Dir", x[1].lower()))
+            items.sort(key=lambda x: (x[0] != "> Dir", x[1].lower()))
             
             for item_type, name, size, modified in items[:20]:  # Show max 20 items
                 table.add_row(item_type, name, size, modified)
