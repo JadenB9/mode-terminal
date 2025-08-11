@@ -357,7 +357,10 @@ class MenuInput:
             try:
                 key = self._get_live_key(ai_mode=True)
                 
-                if key == 'TAB':
+                # Debug: show what key was detected (uncomment to debug)
+                # print(f"\nDEBUG: Key detected: {repr(key)}", flush=True)
+                
+                if key == 'TAB' or key == '\t':
                     # Exit chat-only mode cleanly
                     self.chat_only_mode = False
                     self.ai_mode = False
@@ -418,8 +421,8 @@ class MenuInput:
                     self.ai_mode = False
                     return None
                     
-                elif len(key) == 1 and ord(key) >= 32 and not self.ai_thinking:
-                    # Live typing like Claude Code
+                elif len(key) == 1 and ord(key) >= 32 and key != '\t' and not self.ai_thinking:
+                    # Live typing like Claude Code (exclude Tab characters)
                     self.ai_input += key
                     self._update_input_line_only()
                     
@@ -431,8 +434,17 @@ class MenuInput:
         return None
     
     def _draw_chat_interface_static(self):
-        """Draw the static chat interface like Claude Code"""
+        """Draw the static chat interface like Claude Code with proper resizing"""
+        # Always update terminal size first
+        old_size = (self.terminal_width, self.terminal_height)
         self._update_terminal_size()
+        current_size = (self.terminal_width, self.terminal_height)
+        
+        # If terminal was resized, force a complete redraw
+        if current_size != old_size:
+            self.console.clear()
+            # Reset input line tracking
+            self._prev_input_lines = 1
         
         # Draw chat history if it exists
         if self.ai_chat_history:
@@ -552,6 +564,17 @@ class MenuInput:
     def _update_input_line_only(self):
         """Update only the input box like Claude Code live typing with expansion"""
         try:
+            # Check for terminal resize first
+            old_size = (self.terminal_width, self.terminal_height)
+            self._update_terminal_size()
+            current_size = (self.terminal_width, self.terminal_height)
+            
+            # If terminal resized, do full redraw
+            if current_size != old_size:
+                self.console.clear()
+                self._draw_chat_interface_static()
+                return
+                
             current_input = getattr(self, 'ai_input', '')
             
             # Calculate current and previous input box size
@@ -565,7 +588,7 @@ class MenuInput:
             # Get previous size (stored in instance variable)
             prev_lines = getattr(self, '_prev_input_lines', 1)
             
-            # If size changed significantly, redraw the entire interface
+            # If input box size changed, redraw the entire interface
             if abs(lines_needed - prev_lines) > 0:
                 self.console.clear()
                 self._draw_chat_interface_static()
@@ -696,14 +719,22 @@ class MenuInput:
     
     def _draw_welcome_message(self):
         """Draw welcome message in center of screen when no chat history exists"""
-        # Calculate center position
-        center_line = (self.terminal_height - 6) // 2  # Account for AI box at bottom
+        # Always use current terminal size
+        self._update_terminal_size()
+        
+        # Calculate center position accounting for input box at bottom
+        available_height = self.terminal_height - 8  # Account for input box height
+        center_line = max(5, available_height // 2)
         
         # Position cursor at center
         print(f"\033[{center_line};1H", end="", flush=True)
         
         # Create welcome message
-        welcome_text = "Welcome to ModeTerminal AI, how can I assist you?"
+        welcome_text = "Welcome to Mode Terminal AI, how can I assist you?"
+        
+        # Ensure message fits in terminal width
+        if len(welcome_text) > self.terminal_width - 4:
+            welcome_text = "Welcome to Mode Terminal AI"
         
         # Center the text horizontally
         padding = max(0, (self.terminal_width - len(welcome_text)) // 2)
