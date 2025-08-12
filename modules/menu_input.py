@@ -31,20 +31,26 @@ class MenuInput:
     
     def _check_resize(self):
         """Check if terminal was resized and handle it"""
+        # Always check for size changes, not just when signal fires
+        old_size = (self.terminal_width, self.terminal_height)
+        self._update_terminal_size()
+        
+        # Check if size actually changed
+        if (self.terminal_width, self.terminal_height) != old_size and old_size != (0, 0):
+            # Terminal was resized - do thorough clear and redraw
+            print("\033[2J\033[3J\033[H", end="", flush=True)
+            if self.chat_only_mode:
+                self.console.clear()
+                self._draw_chat_interface_static()
+            else:
+                self.console.clear()
+                self._draw_complete_interface()
+            return True
+            
+        # Reset resize flag if it was set
         if self._resize_flag:
             self._resize_flag = False
-            old_size = (self.terminal_width, self.terminal_height)
-            self._update_terminal_size()
-            if (self.terminal_width, self.terminal_height) != old_size:
-                # Terminal was actually resized - do thorough clear
-                print("\033[2J\033[3J\033[H", end="", flush=True)
-                if self.chat_only_mode:
-                    self.console.clear()
-                    self._draw_chat_interface_static()
-                else:
-                    self.console.clear()
-                    self._draw_complete_interface()
-                return True
+            
         return False
         
     def _update_terminal_size(self):
@@ -94,7 +100,10 @@ class MenuInput:
                 # Get live keypress
                 key = self._get_live_key()
                 
-                if key == 'UP':
+                if key == 'NO_INPUT':
+                    # No key pressed - just continue to check for resize
+                    continue
+                elif key == 'UP':
                     old_index = self.current_index
                     self.current_index = max(0, self.current_index - 1)
                     if old_index != self.current_index:
@@ -156,12 +165,21 @@ class MenuInput:
         try:
             import termios
             import tty
+            import select
             
             fd = sys.stdin.fileno()
             old_settings = termios.tcgetattr(fd)
             
             try:
                 tty.setraw(sys.stdin.fileno())
+                
+                # Check for input with short timeout to enable resize detection
+                ready, _, _ = select.select([fd], [], [], 0.1)  # 100ms timeout
+                
+                if not ready:
+                    # No input available - return special signal to check resize
+                    return 'NO_INPUT'
+                
                 ch = sys.stdin.read(1)
                 
                 # Handle escape sequences (arrow keys and special commands)
@@ -339,7 +357,10 @@ class MenuInput:
                 
                 key = self._get_live_key(ai_mode=True)
                 
-                if key == 'TAB' or key == '\t':
+                if key == 'NO_INPUT':
+                    # No key pressed - just continue to check for resize
+                    continue
+                elif key == 'TAB' or key == '\t':
                     # Exit chat-only mode immediately - clear screen and return properly
                     self.chat_only_mode = False
                     self.ai_mode = False
