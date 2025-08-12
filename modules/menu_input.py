@@ -353,17 +353,23 @@ class MenuInput:
         self.console.clear()
         self._draw_chat_interface_static()
         
+        # Hide cursor for clean interface
+        print("\033[?25l", end="", flush=True)
+        
         while self.chat_only_mode and self.ai_mode:
             try:
                 key = self._get_live_key(ai_mode=True)
                 
-                # Debug: show what key was detected (uncomment to debug)
-                # print(f"\nDEBUG: Key detected: {repr(key)}", flush=True)
+                # Debug: show what key was detected 
+                print(f"\nDEBUG: Key detected: {repr(key)}", flush=True)
                 
                 if key == 'TAB' or key == '\t':
-                    # Exit chat-only mode cleanly
+                    # Exit chat-only mode immediately - clear screen and go back to menu
                     self.chat_only_mode = False
                     self.ai_mode = False
+                    # Show cursor again before exiting
+                    print("\033[?25h", end="", flush=True)
+                    self.console.clear()
                     return None
                     
                 elif key == 'VIEW_MESSAGES':
@@ -419,6 +425,8 @@ class MenuInput:
                 elif key == '\x03':  # Ctrl+C
                     self.chat_only_mode = False
                     self.ai_mode = False
+                    # Show cursor again before exiting
+                    print("\033[?25h", end="", flush=True)
                     return None
                     
                 elif len(key) == 1 and ord(key) >= 32 and key != '\t' and not self.ai_thinking:
@@ -429,6 +437,8 @@ class MenuInput:
             except Exception:
                 self.chat_only_mode = False
                 self.ai_mode = False
+                # Show cursor again before exiting
+                print("\033[?25h", end="", flush=True)
                 return None
         
         return None
@@ -560,6 +570,9 @@ class MenuInput:
         
         # Use Rich to render the panel
         self.console.print(input_panel)
+        
+        # Hide cursor
+        print("\033[?25l", end="", flush=True)
     
     def _update_input_line_only(self):
         """Update only the input box like Claude Code live typing with expansion"""
@@ -649,6 +662,9 @@ class MenuInput:
         )
         
         self.console.print(input_panel)
+        
+        # Hide cursor
+        print("\033[?25l", end="", flush=True)
     
     def _show_full_messages_clean(self):
         """Show full messages in completely clean screen with nice formatting"""
