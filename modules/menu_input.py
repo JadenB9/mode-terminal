@@ -953,9 +953,9 @@ class MenuInput:
         self.console.print("\n[bold blue]━━━ Recent Chat ━━━[/bold blue]")
         lines_used = 2  # Header + spacing
         
-        # Be more conservative - each message needs 4 lines minimum (3 for panel + 1 spacing)
-        max_messages = max(0, (max_lines - lines_used - 2) // 4)  # -2 for hint line
-        max_messages = min(max_messages, 3)  # Reduced from 4 to 3 for safety
+        # Allow more messages - each message needs 3-4 lines (panel + spacing)
+        max_messages = max(0, (max_lines - lines_used - 2) // 3)  # 3 lines per message
+        max_messages = min(max_messages, 6)  # Show up to 6 messages for more context
         
         if max_messages == 0:
             # Just show hint if no space for messages
@@ -966,9 +966,9 @@ class MenuInput:
         
         for msg in recent:
             msg_text = str(msg)
-            # Truncate long messages more aggressively for main menu
-            if len(msg_text) > 70:  # Reduced from 80 to 70 for safety
-                msg_text = msg_text[:70] + "..."
+            # Allow slightly longer messages for better context
+            if len(msg_text) > 90:  # Increased from 70 to 90 for more context
+                msg_text = msg_text[:90] + "..."
             
             msg_panel = Panel(
                 msg_text,
@@ -977,10 +977,10 @@ class MenuInput:
                 border_style="dim"
             )
             self.console.print(msg_panel)
-            lines_used += 4  # More conservative estimate
+            lines_used += 3  # More accurate estimate for better space usage
         
         # Show hint to view full messages (only if there are truncated messages)
-        if len(self.ai_chat_history) > len(recent) or any(len(str(msg)) > 70 for msg in recent):
+        if len(self.ai_chat_history) > len(recent) or any(len(str(msg)) > 90 for msg in recent):
             self.console.print("[dim yellow]Press Esc+m for full chat history[/dim yellow]")
     
     def _show_full_messages(self):

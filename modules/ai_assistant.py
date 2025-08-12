@@ -108,31 +108,44 @@ class AIAssistant:
         except:
             file_list = "(unable to list files)"
             
-        return f"""You are a terminal assistant that ALWAYS EXECUTES commands for the user. Never suggest - always DO.
+        return f"""You are an INTELLIGENT TERMINAL EXECUTOR that converts natural language into immediate command execution.
 
 CURRENT CONTEXT:
 - Working directory: {current_dir}
-- Files and folders here:
-{file_list}
+- Available files/folders: {file_list}
 
-CRITICAL RULES - MUST FOLLOW:
-1. EXECUTE EVERY COMMAND IMMEDIATELY - never just suggest or explain
-2. Use `command` format to run commands automatically
-3. For ANY user request that involves files/directories/system actions: RUN THE COMMAND
-4. If user says "show files" → IMMEDIATELY run `ls -la`
-5. If user says "go to folder" → IMMEDIATELY run `cd path`
-6. If user asks about something → IMMEDIATELY investigate with commands
-7. Always act, never just talk
+CORE BEHAVIOR:
+1. UNDERSTAND the user's intent from natural language
+2. CONVERT intent to appropriate terminal commands
+3. EXECUTE commands immediately using `command` syntax
+4. If first attempt fails, TRY ALTERNATIVE commands
+5. SEARCH and EXPLORE when you need more information
 
-EXECUTION EXAMPLES:
-- "show files" → `ls -la` (run immediately)
-- "go to Projects" → `cd "{current_dir}/Projects"` (run immediately)  
-- "what's in there" → `ls foldername` (run immediately)
-- "create file" → `touch filename` (run immediately)
-- "check status" → `git status` (run immediately)
+EXECUTION PHILOSOPHY:
+- User says ANYTHING → Find the RIGHT command to execute
+- Don't know something? → Use commands to DISCOVER
+- First try fails? → TRY different approaches
+- Always EXECUTE, never just explain
 
-Base path: {self.ai_config['allowed_base_path']}/
-PRIORITY: Execute first, explain second. Be action-oriented, not conversational."""
+INTELLIGENT EXAMPLES:
+- "show me what's here" → `ls -la` → if empty try `ls -lah` or `find . -maxdepth 1`
+- "find my python files" → `find . -name "*.py"` → if none try `ls **/*.py` or `locate *.py`
+- "what processes are running" → `ps aux` → if too much try `ps aux | head -20`
+- "check disk space" → `df -h` → then maybe `du -sh *` for current directory
+- "go to projects folder" → `cd Projects` → if fails try `cd projects` or `find . -name "*project*" -type d`
+- "show me large files" → `du -sh * | sort -rh | head -10`
+- "what's using port 3000" → `lsof -i :3000` → if fails try `netstat -tulpn | grep 3000`
+
+SEARCH STRATEGY:
+1. Try the MOST LIKELY command first
+2. If it fails or returns nothing useful, try ALTERNATIVES
+3. Use find, grep, locate, which, etc. to DISCOVER
+4. Combine commands with pipes for better results
+5. Always show what you found, even if it's "nothing found"
+
+FORBIDDEN: Never say "try this command" - EXECUTE it immediately!
+Base path restriction: {self.ai_config['allowed_base_path']}/
+EXECUTE EVERYTHING. BE INTELLIGENT. BE PERSISTENT."""
 
     def _get_ollama_response(self, system_prompt: str, user_input: str) -> Optional[str]:
         try:
@@ -159,9 +172,22 @@ PRIORITY: Execute first, explain second. Be action-oriented, not conversational.
             return None
 
     def _handle_commands_in_response_simple(self, response: str, menu_input):
-        """Handle commands without live updates"""
+        """Handle commands without live updates - with intelligent search capability"""
         import re
         lines = response.split('\n')
+        
+        # Look for search patterns like "try X → if fails try Y"
+        search_pattern = r'`([^`]+)`.*?→.*?`([^`]+)`'
+        search_matches = re.findall(search_pattern, response)
+        
+        if search_matches:
+            # Handle search strategy commands
+            for primary_cmd, fallback_cmd in search_matches:
+                result = self._execute_with_fallback(primary_cmd, fallback_cmd, menu_input)
+                if result:  # If we got useful output, don't continue with other fallbacks
+                    continue
+        
+        # Handle regular command execution
         for line in lines:
             line = line.strip()
             if not line:
@@ -173,6 +199,9 @@ PRIORITY: Execute first, explain second. Be action-oriented, not conversational.
             backtick_match = re.search(r'`([^`]+)`', line)
             if backtick_match:
                 command = backtick_match.group(1)
+                # Skip if already handled by search pattern
+                if any(command in pair for pair in search_matches for cmd in pair):
+                    continue
                 if any(cmd in command.split()[0] if command.split() else '' for cmd in self.SAFE_COMMANDS + self.CONFIRM_COMMANDS):
                     self._execute_command_simple(command, menu_input)
                 continue
@@ -200,6 +229,75 @@ PRIORITY: Execute first, explain second. Be action-oriented, not conversational.
             words = line.split()
             if words and words[0] in self.SAFE_COMMANDS + self.CONFIRM_COMMANDS:
                 self._execute_command_split_screen(line, menu_input, live)
+
+    def _execute_with_fallback(self, primary_cmd: str, fallback_cmd: str, menu_input) -> bool:
+        """Execute primary command, if it fails or returns nothing useful, try fallback"""
+        try:
+            # Try primary command first
+            result = self._execute_command_and_return_result(primary_cmd)
+            
+            if result and result.get('useful'):
+                # Primary command worked and returned useful output
+                menu_input.add_chat_message(f"Found: {result['output']}")
+                return True
+            else:
+                # Primary failed or returned nothing useful, try fallback
+                menu_input.add_chat_message(f"Trying alternative approach...")
+                fallback_result = self._execute_command_and_return_result(fallback_cmd)
+                
+                if fallback_result and fallback_result.get('useful'):
+                    menu_input.add_chat_message(f"Found: {fallback_result['output']}")
+                    return True
+                else:
+                    menu_input.add_chat_message(f"No results found with either approach")
+                    return False
+                    
+        except Exception as e:
+            menu_input.add_chat_message(f"Search error: {e}")
+            return False
+
+    def _execute_command_and_return_result(self, command: str) -> dict:
+        """Execute command and return structured result with usefulness assessment"""
+        try:
+            if not self._is_command_safe(command):
+                return {'useful': False, 'output': 'Command blocked', 'error': 'Safety check failed'}
+                
+            parts = shlex.split(command)
+            if not parts:
+                return {'useful': False, 'output': '', 'error': 'Empty command'}
+                
+            result = subprocess.run(
+                parts,
+                capture_output=True,
+                text=True,
+                timeout=self.ai_config['max_command_timeout'],
+                cwd=os.getcwd()
+            )
+            
+            output = result.stdout.strip() if result.stdout else ''
+            error = result.stderr.strip() if result.stderr else ''
+            
+            # Assess if result is useful
+            useful = (
+                result.returncode == 0 and  # Command succeeded
+                len(output) > 0 and  # Has output
+                not any(no_result in output.lower() for no_result in 
+                       ['no such file', 'not found', 'no matches', 'permission denied'])
+            )
+            
+            return {
+                'useful': useful,
+                'output': output,
+                'error': error,
+                'returncode': result.returncode
+            }
+            
+        except subprocess.TimeoutExpired:
+            return {'useful': False, 'output': '', 'error': 'Command timed out'}
+        except FileNotFoundError:
+            return {'useful': False, 'output': '', 'error': 'Command not found'}
+        except Exception as e:
+            return {'useful': False, 'output': '', 'error': str(e)}
 
     def _execute_command_simple(self, command: str, menu_input):
         """Execute command without live updates"""
