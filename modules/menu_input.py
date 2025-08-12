@@ -1,5 +1,6 @@
 import os
 import sys
+import signal
 from typing import List, Dict, Any, Optional, Callable
 
 from rich.console import Console
@@ -19,6 +20,31 @@ class MenuInput:
         self.last_terminal_size = (0, 0)
         self.chat_only_mode = False
         self._prev_input_lines = 1
+        self._resize_flag = False
+        
+        # Set up signal handler for terminal resize
+        signal.signal(signal.SIGWINCH, self._handle_resize)
+    
+    def _handle_resize(self, signum, frame):
+        """Handle terminal resize signal"""
+        self._resize_flag = True
+    
+    def _check_resize(self):
+        """Check if terminal was resized and handle it"""
+        if self._resize_flag:
+            self._resize_flag = False
+            old_size = (self.terminal_width, self.terminal_height)
+            self._update_terminal_size()
+            if (self.terminal_width, self.terminal_height) != old_size:
+                # Terminal was actually resized
+                if self.chat_only_mode:
+                    self.console.clear()
+                    self._draw_chat_interface_static()
+                else:
+                    self.console.clear()
+                    self._draw_complete_interface()
+                return True
+        return False
         
     def _update_terminal_size(self):
         """Update terminal dimensions"""
@@ -61,6 +87,9 @@ class MenuInput:
         
         while True:
             try:
+                # Check for terminal resize before processing input
+                self._check_resize()
+                
                 # Get live keypress
                 key = self._get_live_key()
                 
@@ -91,7 +120,11 @@ class MenuInput:
                             # Enter chat-only mode
                             self.chat_only_mode = True
                             result = self._handle_chat_only_mode()
-                            if result:
+                            if result == 'exit_to_menu':
+                                # Clear screen and redraw main interface
+                                self.console.clear()
+                                self._draw_complete_interface()
+                            elif result:
                                 return result
                         
                 elif key == 'b' or key == 'B':
@@ -358,19 +391,19 @@ class MenuInput:
         
         while self.chat_only_mode and self.ai_mode:
             try:
+                # Check for terminal resize before processing input
+                self._check_resize()
+                
                 key = self._get_live_key(ai_mode=True)
                 
-                # Debug: show what key was detected 
-                print(f"\nDEBUG: Key detected: {repr(key)}", flush=True)
-                
                 if key == 'TAB' or key == '\t':
-                    # Exit chat-only mode immediately - clear screen and go back to menu
+                    # Exit chat-only mode immediately - clear screen and return properly
                     self.chat_only_mode = False
                     self.ai_mode = False
                     # Show cursor again before exiting
                     print("\033[?25h", end="", flush=True)
-                    self.console.clear()
-                    return None
+                    # Don't just clear - return a specific signal to redraw main menu
+                    return 'exit_to_menu'
                     
                 elif key == 'VIEW_MESSAGES':
                     if self.ai_chat_history:
@@ -608,17 +641,9 @@ class MenuInput:
                 self._prev_input_lines = lines_needed
                 return
             
-            # Otherwise, just update the input box content in place
-            box_height = lines_needed + 2
-            bottom_start = self.terminal_height - box_height
-            
-            # Clear the input box area
-            for i in range(box_height):
-                print(f"\033[{bottom_start + i};1H\033[K", end="", flush=True)
-            
-            # Redraw the input box
-            print(f"\033[{bottom_start};1H", end="", flush=True)
-            self._draw_input_box_content_only(lines_needed)
+            # For now, always do full redraw to prevent stacking - optimize later
+            self.console.clear()
+            self._draw_chat_interface_static()
             
         except Exception:
             # Fallback to full redraw if positioning fails
