@@ -211,7 +211,9 @@ class MenuInput:
             raise KeyboardInterrupt
 
     def _draw_complete_interface(self):
-        """Draw the complete interface once"""
+        """Draw the complete interface once with smart space management"""
+        self._update_terminal_size()
+        
         # Store position for cursor calculations
         line_count = 0
         
@@ -233,18 +235,22 @@ class MenuInput:
         self._draw_menu_box()
         line_count += len(self.options) + 3  # options + borders
         
-        # AI box - only draw if AI mode has been activated
-        if self.ai_assistant and (self.ai_mode or self.ai_chat_history):
-            self._draw_ai_box()
-            line_count += 5
-        
-        # Controls
+        # Controls (always show these)
         self.console.print("\n[dim]↑↓: Navigate  Enter: Select  Tab: AI Chat  b: Back  h: Help  q: Quit[/dim]")
         line_count += 2
         
-        # Chat history
-        if self.ai_chat_history:
-            self._draw_chat_history()
+        # Calculate remaining space for chat history
+        remaining_lines = self.terminal_height - line_count - 2  # Keep 2 lines buffer at bottom
+        
+        # Only show AI box if actively in AI mode (not just if history exists)
+        if self.ai_assistant and self.ai_mode:
+            self._draw_ai_box()
+            line_count += 5
+            remaining_lines -= 5
+        
+        # Draw limited chat history that fits in remaining space
+        if self.ai_chat_history and remaining_lines > 3:
+            self._draw_limited_chat_history(remaining_lines)
 
     def _draw_menu_box(self):
         """Draw the menu options box"""
@@ -976,6 +982,43 @@ class MenuInput:
             
         if has_truncated:
             self.console.print("[dim yellow]Press Esc+m to read full messages[/dim yellow]")
+    
+    def _draw_limited_chat_history(self, max_lines):
+        """Draw chat history that fits within the available space"""
+        if not self.ai_chat_history:
+            return
+        
+        self.console.print("\n[bold blue]━━━ Recent Chat ━━━[/bold blue]")
+        lines_used = 2  # Header + spacing
+        
+        # Calculate how many messages we can fit
+        # Each message uses roughly 3 lines (with panel borders)
+        max_messages = max(1, (max_lines - lines_used) // 3)
+        max_messages = min(max_messages, 4)  # Never show more than 4 messages in main menu
+        
+        recent = self.ai_chat_history[-max_messages:]
+        
+        for msg in recent:
+            if lines_used >= max_lines - 3:  # Stop if we're running out of space
+                break
+                
+            msg_text = str(msg)
+            # Truncate long messages more aggressively for main menu
+            if len(msg_text) > 80:
+                msg_text = msg_text[:80] + "..."
+            
+            msg_panel = Panel(
+                msg_text,
+                style="dim white on grey11", 
+                padding=(0, 1),
+                border_style="dim"
+            )
+            self.console.print(msg_panel)
+            lines_used += 3  # Approximate lines per message
+        
+        # Show hint to view full messages
+        if len(self.ai_chat_history) > len(recent) or any(len(str(msg)) > 80 for msg in recent):
+            self.console.print("[dim yellow]Press Esc+m for full chat history[/dim yellow]")
     
     def _show_full_messages(self):
         """Show full messages in a dedicated viewer"""
