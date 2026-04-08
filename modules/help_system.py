@@ -1,6 +1,5 @@
 """Help system module for Mode Terminal v2.0."""
 
-import os
 from typing import Dict, Any
 from rich.console import Console
 from rich.panel import Panel
@@ -72,7 +71,7 @@ class HelpSystem:
 
     def show_quick_start(self):
         """Show quick start guide."""
-        os.system('clear')
+        self.console.clear()
         guide = """
 [bold cyan]Welcome to Mode Terminal v2.0[/bold cyan]
 
@@ -97,7 +96,7 @@ class HelpSystem:
 
     def show_navigation_help(self):
         """Show navigation controls."""
-        os.system('clear')
+        self.console.clear()
 
         table = Table(title="Keyboard Controls")
         table.add_column("Key", style="cyan", width=12)
@@ -125,7 +124,7 @@ class HelpSystem:
 
     def show_features_help(self):
         """Show feature overview."""
-        os.system('clear')
+        self.console.clear()
         self.console.print(Panel("Feature Overview", style="bold yellow"))
         self.console.print()
 
@@ -166,7 +165,7 @@ class HelpSystem:
 
     def show_configuration_help(self):
         """Show configuration help."""
-        os.system('clear')
+        self.console.clear()
 
         config_text = f"""
 [bold cyan]Config File:[/bold cyan] ~/.mode/config.json
@@ -191,7 +190,7 @@ class HelpSystem:
 
     def show_troubleshooting_help(self):
         """Show troubleshooting help."""
-        os.system('clear')
+        self.console.clear()
 
         trouble = """
 [yellow]"mode" command not found[/yellow]
@@ -200,7 +199,7 @@ class HelpSystem:
   - Run: source ~/.zshrc
 
 [yellow]Python import errors[/yellow]
-  - Install deps: pip3 install --break-system-packages rich questionary
+  - Install deps: pip3 install --break-system-packages rich
   - Or use: ~/.mode/setup_python.py
 
 [yellow]Permission errors[/yellow]
@@ -214,14 +213,14 @@ class HelpSystem:
 [yellow]Menu not displaying correctly[/yellow]
   - Ensure terminal supports ANSI colors
   - Try resizing terminal window
-  - Update questionary: pip3 install -U questionary
+  - Update Rich: pip3 install -U rich
 """
         self.console.print(Panel(trouble, title="Troubleshooting", border_style="red"))
         input("\nPress Enter to continue...")
 
     def show_quick_reference(self):
         """Show quick reference card."""
-        os.system('clear')
+        self.console.clear()
 
         table = Table(title="Quick Reference")
         table.add_column("Key", style="cyan", width=10)

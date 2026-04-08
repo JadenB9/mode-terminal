@@ -1,88 +1,260 @@
-"""Clean menu input module using questionary and rich."""
+"""Professional menu system using Rich rendering and raw terminal input.
+
+Replaces questionary with a clean arrow-key TUI that renders correctly
+in all terminals without ANSI escape code artifacts.
+"""
 
 import os
-from typing import List, Dict, Any, Optional, Callable
+import sys
+import select
+import termios
+import tty
+from typing import Any, Callable, Dict, List
 
-import questionary
-from questionary import Style
+from rich import box
 from rich.console import Console
-from rich.panel import Panel
+from rich.table import Table
 from rich.text import Text
 
-MENU_STYLE = Style([
-    ("qmark", "fg:cyan bold"),
-    ("question", "fg:white bold"),
-    ("pointer", "fg:cyan bold"),
-    ("highlighted", "fg:green bold"),
-    ("selected", "fg:green"),
-    ("answer", "fg:green bold"),
-])
+
+# ---------------------------------------------------------------------------
+# Low-level key reading
+# ---------------------------------------------------------------------------
+
+def _read_key(timeout: float | None = None) -> str:
+    """Read a single keypress from stdin."""
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setcbreak(fd)
+        if timeout is not None:
+            ready, _, _ = select.select([fd], [], [], timeout)
+            if not ready:
+                return "NO_INPUT"
+        ch = os.read(fd, 1).decode(errors="ignore")
+        if ch == "\x03":
+            raise KeyboardInterrupt
+        if ch in ("\r", "\n"):
+            return "ENTER"
+        if ch == "\x1b":
+            parts: list[str] = []
+            while True:
+                r, _, _ = select.select([fd], [], [], 0.05)
+                if not r:
+                    break
+                c = os.read(fd, 1).decode(errors="ignore")
+                if not c:
+                    break
+                parts.append(c)
+                if c.isalpha() or c == "~":
+                    break
+            seq = "".join(parts)
+            if seq in ("[A", "OA"):
+                return "UP"
+            if seq in ("[B", "OB"):
+                return "DOWN"
+            return "BACK"
+        if ch in ("k", "K"):
+            return "UP"
+        if ch in ("j", "J"):
+            return "DOWN"
+        if ch in ("b", "B"):
+            return "BACK"
+        if ch in ("q", "Q"):
+            return "QUIT"
+        return "UNKNOWN"
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
-def _format_choice(option: Dict[str, Any]) -> questionary.Choice:
-    """Format an option dict into a questionary Choice."""
-    label = option["name"]
-    if option.get("description"):
-        label += f"  \033[2m- {option['description']}\033[0m"
-    return questionary.Choice(title=label, value=option["value"])
+def _term_size() -> tuple[int, int]:
+    """Return (columns, lines)."""
+    sz = os.get_terminal_size()
+    return sz.columns, sz.lines
 
+
+# ---------------------------------------------------------------------------
+# Styles
+# ---------------------------------------------------------------------------
+
+BRAND = "bold white on color(236)"
+ACCENT = "bold color(141)"
+BORDER = "color(242)"
+SELECTED = "bold white on color(238)"
+HINT_STYLE = "dim"
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 def show_menu(
     console: Console,
     title: str,
     options: List[Dict[str, Any]],
-    help_callback: Optional[Callable] = None,
-    header_callback: Optional[Callable] = None,
+    help_callback: Callable | None = None,
+    header_callback: Callable | None = None,
     ai_assistant: Any = None,
 ) -> str:
-    """Display an interactive menu and return the selected value.
+    """Arrow-key menu. Returns selected ``value`` or ``"BACK"``."""
+    idx = 0
+    prev_size: tuple[int, int] | None = None
+    first_draw = True
 
-    Args:
-        console: Rich Console instance.
-        title: Menu title string.
-        options: List of dicts with keys 'name', 'value', and optional 'description'.
-        help_callback: Optional callable to display help info.
-        header_callback: Optional callable to render header art.
-        ai_assistant: Unused, kept for API compatibility.
+    while True:
+        size = _term_size()
+        if size != prev_size:
+            _draw(console, title, options, idx, size, header_callback, first_draw=first_draw)
+            first_draw = False
+            prev_size = size
 
-    Returns:
-        The 'value' of the selected option, or 'BACK' on cancel.
-    """
-    os.system("clear")
+        key = _read_key(timeout=0.1)
+        if key == "NO_INPUT":
+            if _term_size() != prev_size:
+                prev_size = None
+            continue
+
+        if key == "UP":
+            idx = (idx - 1) % len(options)
+            prev_size = None
+        elif key == "DOWN":
+            idx = (idx + 1) % len(options)
+            prev_size = None
+        elif key == "ENTER":
+            return options[idx]["value"]
+        elif key in ("BACK", "QUIT"):
+            return "BACK"
+
+
+def _draw(
+    console: Console,
+    title: str,
+    options: List[Dict[str, Any]],
+    idx: int,
+    size: tuple[int, int],
+    header_callback: Callable | None,
+    *,
+    first_draw: bool = False,
+) -> None:
+    if first_draw:
+        console.clear()
+    else:
+        # Move cursor to top-left without clearing — avoids flicker
+        sys.stdout.write("\033[H")
+        sys.stdout.flush()
 
     if header_callback:
         header_callback()
 
-    console.print(
-        Panel(
-            Text(title, justify="center", style="bold cyan"),
-            border_style="cyan",
-            padding=(0, 2),
-        )
-    )
+    # Title bar
+    console.print(Text(f" {title} ", style=BRAND))
     console.print()
 
-    choices = [_format_choice(opt) for opt in options]
-    choices.append(questionary.Choice(title="\033[2m\u2190 Back\033[0m", value="BACK"))
+    width = size[0]
+    compact = width < 60
 
+    tbl = Table(
+        box=box.SIMPLE_HEAVY,
+        border_style=BORDER,
+        expand=True,
+        show_header=False,
+        padding=(0, 1),
+    )
+    tbl.add_column("", width=3, justify="right")
+    tbl.add_column("", min_width=16)
+    if not compact:
+        tbl.add_column("", ratio=2, style="dim")
+
+    for i, opt in enumerate(options):
+        sel = i == idx
+        marker = ">" if sel else " "
+        row: list[Any] = [marker, opt["name"]]
+        if not compact:
+            row.append(opt.get("description", ""))
+        tbl.add_row(*row)
+        if sel:
+            tbl.rows[-1].style = SELECTED
+
+    console.print(tbl)
+    console.print(Text("Up/Down: navigate   Enter: select   Esc/b: back", style=HINT_STYLE))
+    # Erase any leftover lines below the new content
+    sys.stdout.write("\033[J")
+    sys.stdout.flush()
+
+
+# ---------------------------------------------------------------------------
+# Input helpers (replace questionary.text / confirm / select)
+# ---------------------------------------------------------------------------
+
+def prompt_text(console: Console, label: str, default: str | None = None) -> str | None:
+    """Prompt for a text value. Returns None on cancel."""
+    prompt = f"[bold color(141)]{label}[/]"
+    if default:
+        prompt += f" [dim]({default})[/dim]"
+    prompt += ": "
     try:
-        result = questionary.select(
-            "",
-            choices=choices,
-            style=MENU_STYLE,
-            qmark="\u25b6",
-            instruction="",
-            use_arrow_keys=True,
-            use_shortcuts=False,
-        ).ask()
-    except KeyboardInterrupt:
-        return "BACK"
+        value = console.input(prompt).strip()
+        return value if value else default
+    except (KeyboardInterrupt, EOFError):
+        return None
 
-    if result is None:
-        return "BACK"
 
-    if result == "HELP" and help_callback:
-        help_callback()
-        return show_menu(console, title, options, help_callback, header_callback)
+def prompt_confirm(console: Console, label: str, default: bool = True) -> bool:
+    """Yes/no prompt. Returns bool."""
+    hint = "[Y/n]" if default else "[y/N]"
+    try:
+        raw = console.input(f"[bold]{label}[/bold] {hint}: ").strip().lower()
+        if not raw:
+            return default
+        return raw in ("y", "yes")
+    except (KeyboardInterrupt, EOFError):
+        return False
 
-    return result
+
+def prompt_select(
+    console: Console,
+    label: str,
+    choices: List[str],
+) -> str | None:
+    """Arrow-key select from plain string choices. Returns None on cancel."""
+    idx = 0
+    prev: tuple[int, int] | None = None
+    first = True
+
+    while True:
+        size = _term_size()
+        if size != prev:
+            if first:
+                console.clear()
+                first = False
+            else:
+                sys.stdout.write("\033[H")
+                sys.stdout.flush()
+            console.print(Text(f" {label} ", style=BRAND))
+            console.print()
+            for i, ch in enumerate(choices):
+                if i == idx:
+                    console.print(f"  [bold white on color(238)] > {ch} [/]")
+                else:
+                    console.print(f"    {ch}")
+            console.print()
+            console.print(Text("Up/Down: navigate   Enter: select   Esc: cancel", style=HINT_STYLE))
+            sys.stdout.write("\033[J")
+            sys.stdout.flush()
+            prev = size
+
+        key = _read_key(timeout=0.1)
+        if key == "NO_INPUT":
+            if _term_size() != prev:
+                prev = None
+            continue
+        if key == "UP":
+            idx = (idx - 1) % len(choices)
+            prev = None
+        elif key == "DOWN":
+            idx = (idx + 1) % len(choices)
+            prev = None
+        elif key == "ENTER":
+            return choices[idx]
+        elif key in ("BACK", "QUIT"):
+            return None

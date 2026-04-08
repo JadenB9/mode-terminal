@@ -1,16 +1,14 @@
-"""File system navigation module using questionary and rich."""
+"""File system navigation module using Rich and menu_input helpers."""
 
-import os
 import sys
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
 
-import questionary
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from menu_input import show_menu
+from menu_input import show_menu, prompt_confirm, prompt_select
 
 
 class FileNavigator:
@@ -54,26 +52,27 @@ class FileNavigator:
             ('iCloud Drive', home / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'),
         ]
 
-        choices = [questionary.Choice(title=name, value=str(path)) for name, path in dirs]
+        labels = [name for name, _ in dirs]
+        path_map = {name: path for name, path in dirs}
 
         while True:
-            os.system('clear')
+            self.console.clear()
             self.console.print(Panel("Quick Navigation", style="bold cyan"))
             self.console.print()
 
             try:
-                selected = questionary.select(
+                selected = prompt_select(
+                    self.console,
                     "Select directory:",
-                    choices=choices,
-                    use_arrow_keys=True,
-                ).ask()
+                    labels,
+                )
             except KeyboardInterrupt:
                 return 'continue'
 
             if selected is None:
                 return 'continue'
 
-            path = Path(selected)
+            path = path_map[selected]
             if path.name == 'com~apple~CloudDocs':
                 result = self.browse_directory(path, "iCloud Drive")
                 if result == 'exit':
@@ -91,11 +90,11 @@ class FileNavigator:
                 input("Press Enter to continue...")
                 return 'continue'
 
-            os.system('clear')
+            self.console.clear()
             self.show_directory_contents(path)
 
             try:
-                stay = questionary.confirm("Stay in this directory and exit mode?").ask()
+                stay = prompt_confirm(self.console, "Stay in this directory and exit mode?")
             except KeyboardInterrupt:
                 return 'continue'
 
@@ -120,7 +119,7 @@ class FileNavigator:
 
         while True:
             try:
-                os.system('clear')
+                self.console.clear()
                 self.console.print(Panel(f"{title} - {current_path}", style="bold cyan"))
                 self.console.print()
 
@@ -135,34 +134,38 @@ class FileNavigator:
                     return 'continue'
 
                 choices = []
+                folder_map = {}
+
                 if current_path != directory:
-                    choices.append(questionary.Choice(title=".. (Parent)", value="__parent__"))
+                    choices.append(".. (Parent)")
 
                 for folder in sorted(folders, key=lambda f: f.name.lower()):
-                    choices.append(questionary.Choice(title=folder.name, value=str(folder)))
+                    choices.append(folder.name)
+                    folder_map[folder.name] = folder
 
-                choices.append(questionary.Choice(title=f"[Select {current_path.name}]", value="__select__"))
-                choices.append(questionary.Choice(title="Back", value="__back__"))
+                select_label = f"[Select {current_path.name}]"
+                choices.append(select_label)
+                choices.append("Back")
 
                 try:
-                    choice = questionary.select(
+                    choice = prompt_select(
+                        self.console,
                         "Navigate:",
-                        choices=choices,
-                        use_arrow_keys=True,
-                    ).ask()
+                        choices,
+                    )
                 except KeyboardInterrupt:
                     return 'continue'
 
-                if choice is None or choice == "__back__":
+                if choice is None or choice == "Back":
                     return 'continue'
-                elif choice == "__parent__":
+                elif choice == ".. (Parent)":
                     current_path = current_path.parent
-                elif choice == "__select__":
+                elif choice == select_label:
                     result = self.navigate_to_directory(current_path)
                     if result == 'exit':
                         return 'exit'
-                else:
-                    current_path = Path(choice)
+                elif choice in folder_map:
+                    current_path = folder_map[choice]
 
             except KeyboardInterrupt:
                 return 'continue'
@@ -180,7 +183,7 @@ class FileNavigator:
             for item in path.iterdir():
                 if not item.name.startswith('.'):
                     stat = item.stat()
-                    size = self._format_size(stat.st_size) if item.is_file() else "—"
+                    size = self._format_size(stat.st_size) if item.is_file() else "--"
                     modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
                     item_type = "Dir" if item.is_dir() else "File"
                     items.append((item_type, item.name, size, modified))
@@ -198,8 +201,9 @@ class FileNavigator:
             self.console.print(f"[red]Error listing directory: {e}[/red]")
 
     @staticmethod
-    def _format_size(size: int) -> str:
+    def _format_size(size_bytes: int) -> str:
         """Format file size in human-readable format."""
+        size = float(size_bytes)
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
             if size < 1024.0:
                 return f"{size:.1f} {unit}"

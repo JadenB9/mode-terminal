@@ -4,23 +4,11 @@ import json
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 
-import questionary
-from questionary import Style
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
-from menu_input import show_menu
-
-MENU_STYLE = Style([
-    ("qmark", "fg:cyan bold"),
-    ("question", "fg:white bold"),
-    ("pointer", "fg:cyan bold"),
-    ("highlighted", "fg:green bold"),
-    ("selected", "fg:green"),
-    ("answer", "fg:green bold"),
-])
+from menu_input import show_menu, prompt_text, prompt_confirm, prompt_select
 
 
 class ProjectManager:
@@ -302,10 +290,7 @@ class ProjectManager:
         try:
             self.projects_path.mkdir(parents=True, exist_ok=True)
 
-            project_name = questionary.text(
-                "Enter project name:",
-                style=MENU_STYLE
-            ).ask()
+            project_name = prompt_text(self.console, "Enter project name")
             if not project_name:
                 return 'continue'
 
@@ -325,11 +310,11 @@ class ProjectManager:
                 'Basic (No framework)'
             ]
 
-            project_type = questionary.select(
-                "Select project type:",
-                choices=project_types,
-                style=MENU_STYLE
-            ).ask()
+            project_type = prompt_select(
+                self.console,
+                "Select project type",
+                project_types
+            )
             if not project_type:
                 return 'continue'
 
@@ -375,26 +360,27 @@ class ProjectManager:
 
             # Offer to create remote GitHub repo
             try:
-                create_remote = questionary.confirm(
+                create_remote = prompt_confirm(
+                    self.console,
                     "Create remote GitHub repository?",
-                    default=False,
-                    style=MENU_STYLE
-                ).ask()
+                    default=False
+                )
                 if create_remote:
-                    vis = questionary.select(
-                        "Repository visibility:",
-                        choices=['public', 'private'],
-                        style=MENU_STYLE
-                    ).ask()
-                    flag = '--public' if vis == 'public' else '--private'
-                    subprocess.run(
-                        ['gh', 'repo', 'create', project_name, flag, '--source=.', '--push'],
-                        check=True
+                    vis = prompt_select(
+                        self.console,
+                        "Repository visibility",
+                        ['public', 'private']
                     )
-                    self.console.print(
-                        f"[green]Created GitHub repository: "
-                        f"{self.config.get('github_username', 'you')}/{project_name}[/green]"
-                    )
+                    if vis:
+                        flag = '--public' if vis == 'public' else '--private'
+                        subprocess.run(
+                            ['gh', 'repo', 'create', project_name, flag, '--source=.', '--push'],
+                            check=True
+                        )
+                        self.console.print(
+                            f"[green]Created GitHub repository: "
+                            f"{self.config.get('github_username', 'you')}/{project_name}[/green]"
+                        )
             except subprocess.CalledProcessError:
                 self.console.print("[yellow]GitHub CLI error. Repo created locally only.[/yellow]")
             except FileNotFoundError:
@@ -405,11 +391,11 @@ class ProjectManager:
             self.console.print(f"[green]Project '{project_name}' created![/green]")
             self.console.print(f"[blue]Location: {project_path}[/blue]")
 
-            switch_now = questionary.confirm(
+            switch_now = prompt_confirm(
+                self.console,
                 "Switch to the new project directory?",
-                default=True,
-                style=MENU_STYLE
-            ).ask()
+                default=True
+            )
             if switch_now:
                 cd_file = Path.home() / '.mode' / '.mode_cd'
                 cd_file.parent.mkdir(parents=True, exist_ok=True)
@@ -456,45 +442,46 @@ class ProjectManager:
 
             choices = []
             for repo in repos:
-                lock = "\U0001f512" if repo.get('isPrivate') else "\U0001f310"
+                visibility = "[private]" if repo.get('isPrivate') else "[public]"
                 desc = repo.get('description') or ''
                 if len(desc) > 50:
                     desc = desc[:47] + '...'
-                label = f"{lock} {repo['name']}"
+                label = f"{repo['name']} {visibility}"
                 if desc:
-                    label += f"  \033[2m- {desc}\033[0m"
-                choices.append(questionary.Choice(title=label, value=repo['name']))
+                    label += f" - {desc}"
+                choices.append(label)
 
-            choices.append(questionary.Choice(title="\033[2m\u2190 Back\033[0m", value="BACK"))
+            choices.append("<- Back")
 
-            selected = questionary.select(
-                "Select repository to clone:",
-                choices=choices,
-                style=MENU_STYLE,
-                qmark="\u25b6",
-                instruction="",
-            ).ask()
+            selected = prompt_select(
+                self.console,
+                "Select repository to clone",
+                choices
+            )
 
-            if not selected or selected == 'BACK':
+            if not selected or selected == "<- Back":
                 return
 
+            # Parse the repo name back from the formatted string
+            repo_name = selected.split(" ")[0]
+
             self.projects_path.mkdir(parents=True, exist_ok=True)
-            clone_target = self.projects_path / selected
+            clone_target = self.projects_path / repo_name
 
             if clone_target.exists():
                 self.console.print(f"[yellow]Directory already exists: {clone_target}[/yellow]")
-                overwrite = questionary.confirm(
+                overwrite = prompt_confirm(
+                    self.console,
                     "Clone anyway (will fail if non-empty)?",
-                    default=False,
-                    style=MENU_STYLE
-                ).ask()
+                    default=False
+                )
                 if not overwrite:
                     input("Press Enter to continue...")
                     return
 
-            self.console.print(f"[cyan]Cloning {selected}...[/cyan]")
+            self.console.print(f"[cyan]Cloning {repo_name}...[/cyan]")
             username = self.config.get('github_username', '')
-            clone_url = f"https://github.com/{username}/{selected}.git" if username else selected
+            clone_url = f"https://github.com/{username}/{repo_name}.git" if username else repo_name
 
             clone_result = subprocess.run(
                 ['git', 'clone', clone_url, str(clone_target)],
@@ -505,18 +492,18 @@ class ProjectManager:
                 self.add_to_recent_projects(str(clone_target))
                 self.console.print(f"[green]Cloned to {clone_target}[/green]")
 
-                switch_now = questionary.confirm(
+                switch_now = prompt_confirm(
+                    self.console,
                     "Switch to the cloned project?",
-                    default=True,
-                    style=MENU_STYLE
-                ).ask()
+                    default=True
+                )
                 if switch_now:
                     cd_file = Path.home() / '.mode' / '.mode_cd'
                     cd_file.parent.mkdir(parents=True, exist_ok=True)
                     with open(cd_file, 'w') as f:
                         f.write(str(clone_target))
                     self.console.clear()
-                    self.console.print(f"[green]Switched to project: {selected}[/green]")
+                    self.console.print(f"[green]Switched to project: {repo_name}[/green]")
                     sys.exit(42)
             else:
                 self.console.print(f"[red]Clone failed: {clone_result.stderr.strip()}[/red]")
@@ -576,7 +563,7 @@ class ProjectManager:
             projects.sort(key=lambda x: x['mtime'], reverse=True)
 
             # Display the rich table
-            os.system("clear")
+            self.console.clear()
             table = Table(title="Projects", border_style="cyan", expand=True)
             table.add_column("#", style="dim", width=3, justify="right")
             table.add_column("Name", style="bold white", min_width=15)
@@ -611,25 +598,27 @@ class ProjectManager:
             self.console.print(table)
             self.console.print()
 
-            # Build choices for questionary (same order as table)
+            # Build choices for prompt_select (same order as table)
             choices = []
             for i, proj in enumerate(projects, 1):
                 label = f"{i}. {proj['name']}  [{proj['branch']}]"
-                choices.append(questionary.Choice(title=label, value=proj['name']))
-            choices.append(questionary.Choice(title="\033[2m\u2190 Back\033[0m", value="BACK"))
+                choices.append(label)
+            choices.append("<- Back")
 
-            selected = questionary.select(
-                "Select a project:",
-                choices=choices,
-                style=MENU_STYLE,
-                qmark="\u25b6",
-                instruction="",
-            ).ask()
+            selected = prompt_select(
+                self.console,
+                "Select a project",
+                choices
+            )
 
-            if not selected or selected == 'BACK':
+            if not selected or selected == "<- Back":
                 return 'continue'
 
-            selected_project = next(p for p in projects if p['name'] == selected)
+            # Parse the project name back from the formatted string
+            # Format is "N. project_name  [branch]"
+            selected_name = selected.split(". ", 1)[1].split("  [")[0]
+
+            selected_project = next(p for p in projects if p['name'] == selected_name)
 
             # Write target directory for shell wrapper
             cd_file = Path.home() / '.mode' / '.mode_cd'
@@ -640,7 +629,7 @@ class ProjectManager:
             self.add_to_recent_projects(selected_project['path'])
 
             self.console.clear()
-            self.console.print(f"[green]Switched to project: {selected}[/green]")
+            self.console.print(f"[green]Switched to project: {selected_name}[/green]")
             self.console.print(f"[blue]Directory: {selected_project['path']}[/blue]")
             sys.exit(42)
 
@@ -672,11 +661,11 @@ class ProjectManager:
         ]
 
         try:
-            env_type = questionary.select(
-                "Select project type:",
-                choices=env_types,
-                style=MENU_STYLE
-            ).ask()
+            env_type = prompt_select(
+                self.console,
+                "Select project type",
+                env_types
+            )
             if not env_type:
                 return
 
@@ -876,6 +865,99 @@ python-dotenv==1.0.0
             self.console.print(f"[yellow]Could not set up full project structure: {e}[/yellow]")
         except Exception as e:
             self.console.print(f"[yellow]Error setting up project structure: {e}[/yellow]")
+
+    # ------------------------------------------------------------------
+    # Prepare for Claude Code
+    # ------------------------------------------------------------------
+    def prepare_for_claude(self):
+        """Add CLAUDE.md and optimize current directory for Claude Code."""
+        cwd = Path.cwd()
+        self.console.clear()
+        self.console.print(f"[bold]Preparing [color(114)]{cwd.name}[/] for Claude Code[/bold]\n")
+
+        created = []
+
+        # Detect project type
+        project_type = self._detect_project_type(cwd)
+        self.console.print(f"[dim]Detected: {project_type}[/dim]\n")
+
+        # Generate CLAUDE.md
+        claude_path = cwd / "CLAUDE.md"
+        if claude_path.exists():
+            overwrite = prompt_confirm(self.console, "CLAUDE.md already exists. Overwrite?", default=False)
+            if not overwrite:
+                self.console.print("[dim]Skipped CLAUDE.md[/dim]")
+            else:
+                claude_md = self._generate_claude_md(cwd.name, project_type)
+                claude_path.write_text(claude_md)
+                created.append("CLAUDE.md")
+        else:
+            claude_md = self._generate_claude_md(cwd.name, project_type)
+            claude_path.write_text(claude_md)
+            created.append("CLAUDE.md")
+
+        # Create .claudeignore if not present
+        claudeignore = cwd / ".claudeignore"
+        if not claudeignore.exists():
+            ignore_content = self._generate_claudeignore(project_type)
+            claudeignore.write_text(ignore_content)
+            created.append(".claudeignore")
+
+        # Create .gitignore if missing
+        gitignore = cwd / ".gitignore"
+        if not gitignore.exists():
+            gitignore.write_text(self.get_gitignore_for_type(project_type))
+            created.append(".gitignore")
+
+        if created:
+            self.console.print(f"[green]Created: {', '.join(created)}[/green]")
+        else:
+            self.console.print("[dim]Nothing new to create.[/dim]")
+
+        input("\nPress Enter to continue...")
+
+    def _detect_project_type(self, path: Path) -> str:
+        """Auto-detect project type from files in directory."""
+        files = {f.name for f in path.iterdir() if f.is_file()}
+        dirs = {d.name for d in path.iterdir() if d.is_dir()}
+
+        if "package.json" in files:
+            if "next.config.js" in files or "next.config.ts" in files or "next.config.mjs" in files:
+                return "React/Next.js Frontend"
+            if "node_modules" in dirs and "server.js" in files:
+                return "Node.js Backend"
+            return "Node.js Backend"
+        if "requirements.txt" in files or "pyproject.toml" in files or "setup.py" in files:
+            if "manage.py" in files:
+                return "Python (Flask/Django/FastAPI)"
+            return "Python (Flask/Django/FastAPI)"
+        if "Cargo.toml" in files:
+            return "Rust/Go/C++ project"
+        if "go.mod" in files:
+            return "Go"
+        if "Dockerfile" in files or "docker-compose.yml" in files:
+            return "Docker/DevOps setup"
+        if "manifest.json" in files and "popup" in dirs:
+            return "Chrome Extension"
+        if "index.html" in files:
+            return "Static Site (HTML/CSS/JS)"
+        return "Basic (No framework)"
+
+    @staticmethod
+    def _generate_claudeignore(project_type: str) -> str:
+        """Generate .claudeignore tailored to project type."""
+        base = "# Ignore large/generated dirs\nnode_modules/\n.git/\n__pycache__/\n*.pyc\n.DS_Store\n"
+        if "React" in project_type or "Node" in project_type or "MERN" in project_type:
+            return base + ".next/\ndist/\nbuild/\ncoverage/\n"
+        if "Python" in project_type:
+            return base + "venv/\n.venv/\nenv/\n*.egg-info/\n.ipynb_checkpoints/\n"
+        if "Rust" in project_type:
+            return base + "target/\n"
+        if "Go" in project_type:
+            return base + "vendor/\n"
+        if "Docker" in project_type:
+            return base + ".docker/\n"
+        return base
 
     # ------------------------------------------------------------------
     # Recent projects tracking

@@ -11,58 +11,89 @@ from pathlib import Path
 from typing import Dict, Any
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.text import Text
-from rich.table import Table
 
 # Add modules path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
 
+from alias_manager import AliasManager
 from project_manager import ProjectManager
 from file_navigator import FileNavigator
 from help_system import HelpSystem
 from bookmark_manager import BookmarkManager
-from menu_input import show_menu
+from ollama_manager import OllamaManager
+from menu_input import show_menu, prompt_text
 
+VERSION = "2.0"
 
 MAIN_MENU_OPTIONS = [
     {
-        'name': '\U0001f4c1 Current Directory',
+        'name': 'Current Directory',
         'value': 'normal',
-        'description': 'Return to home directory and exit',
+        'description': 'Return to terminal in current directory',
     },
     {
-        'name': '\u2601\ufe0f  iCloud Directory',
+        'name': 'iCloud Drive',
         'value': 'filesystem',
         'description': 'Navigate to iCloud Drive',
     },
     {
-        'name': '\U0001f517 SSH John',
+        'name': 'SSH John',
         'value': 'john',
-        'description': 'SSH to butler@john',
+        'description': 'Connect to butler@john via SSH',
     },
     {
-        'name': '\U0001f916 Claude Usage',
+        'name': 'SSH Ubuntu',
+        'value': 'ubuntu',
+        'description': 'Connect to jaden@ubuntu (WSL2) via SSH',
+    },
+    {
+        'name': 'Claude Usage',
         'value': 'claude_usage',
         'description': 'Open Claude AI usage in browser',
     },
     {
-        'name': '\U0001f4e6 Projects',
+        'name': 'Projects',
         'value': 'projects',
-        'description': 'Manage projects, repos, and environments',
+        'description': 'Create new projects with projectmaker',
     },
     {
-        'name': '\U0001f516 Bookmarks',
+        'name': 'Custom LS Set',
+        'value': 'customls_set',
+        'description': 'Assign colors to files and directories',
+    },
+    {
+        'name': 'Custom LS Colors',
+        'value': 'customls_colors',
+        'description': 'View current custom color assignments',
+    },
+    {
+        'name': 'Bookmarks',
         'value': 'bookmarks',
         'description': 'Manage directory bookmarks',
     },
     {
-        'name': '\U0001f4bb Source Code',
+        'name': 'Prepare for Claude',
+        'value': 'prepare',
+        'description': 'Add CLAUDE.md and optimize dir for Claude Code',
+    },
+{
+        'name': 'Alias',
+        'value': 'alias',
+        'description': 'Create or view persistent shell aliases',
+    },
+    {
+        'name': 'Source Code',
         'value': 'thecode',
         'description': 'Open Mode Terminal source directory',
     },
     {
-        'name': '\u2753 Help',
+        'name': 'Ollama',
+        'value': 'ollama',
+        'description': 'Chat with local LLM models via Ollama',
+    },
+    {
+        'name': 'Help',
         'value': 'help',
         'description': 'Help system and documentation',
     },
@@ -73,16 +104,21 @@ class ModeApp:
     def __init__(self):
         self.console = Console()
         self.config_path = Path.home() / '.mode' / 'config.json'
-        self.config = self.load_config()
+        self.cd_file = Path.home() / '.mode' / '.mode_cd'
+        self.config = self._load_config()
 
-        # Initialize modules
         self.project_manager = ProjectManager(self.config, self.console)
         self.file_navigator = FileNavigator(self.config, self.console)
         self.help_system = HelpSystem(self.config, self.console)
         self.bookmark_manager = BookmarkManager(self.config, self.console)
+        self.alias_manager = AliasManager(self.config, self.config_path.parent)
+        self.ollama_manager = OllamaManager(self.config, self.console)
 
-    def load_config(self) -> Dict[str, Any]:
-        """Load configuration from config.json"""
+    # ------------------------------------------------------------------
+    # Config
+    # ------------------------------------------------------------------
+
+    def _load_config(self) -> Dict[str, Any]:
         try:
             with open(self.config_path, 'r') as f:
                 return json.load(f)
@@ -93,272 +129,300 @@ class ModeApp:
             self.console.print("[red]Invalid configuration file. Please check config.json[/red]")
             sys.exit(1)
 
-    def save_config(self):
-        """Save current configuration to file"""
+    def _save_config(self):
         with open(self.config_path, 'w') as f:
             json.dump(self.config, f, indent=2)
 
-    def clear_screen(self):
-        """Clear the terminal screen"""
+    # ------------------------------------------------------------------
+    # Display helpers
+    # ------------------------------------------------------------------
+
+    def _clear(self):
         if self.config.get('auto_clear_screen', True):
             os.system('clear')
 
-    def show_header(self):
-        """Display the application header with ASCII art"""
-        ascii_art = (
-            "  __  __  ___  ___  ___ \n"
-            " |  \\/  |/ _ \\|   \\| __|\n"
-            " | |\\/| | (_) | |) | _| \n"
-            " |_|  |_|\\___/|___/|___|"
-        )
-
-        header_text = Text(ascii_art, style="bold cyan")
-        version_text = Text("v2.0", style="bold green", justify="center")
-        subtitle = Text("Navigate your workflow with ease", style="dim italic", justify="center")
-
-        panel = Panel(
-            header_text,
-            subtitle="v2.0",
-            subtitle_align="center",
-            border_style="cyan",
-            padding=(0, 2),
-        )
-
-        self.console.print(panel)
-        self.console.print(subtitle, justify="center")
+    def _show_header(self):
+        title = Text("MODE", style="bold color(141)")
+        title.append("  ", style="default")
+        title.append(f"v{VERSION}", style="dim")
+        self.console.print(title)
+        self.console.print(Text("Terminal workflow navigator", style="dim"))
         self.console.print()
 
-    def run_main_menu(self):
-        """Run the main menu loop"""
+    def _change_dir_and_exit(self, target: Path):
+        """Write target to .mode_cd and exit with code 42."""
+        with open(self.cd_file, 'w') as f:
+            f.write(str(target))
+        sys.exit(42)
+
+    # ------------------------------------------------------------------
+    # Menu / routing
+    # ------------------------------------------------------------------
+
+    def _run_main_menu(self) -> str:
+        """Show the main menu. Returns a value string or 'exit'."""
         while True:
             try:
                 result = show_menu(
                     self.console,
-                    "Mode Terminal - Main Menu",
+                    "Main Menu",
                     MAIN_MENU_OPTIONS,
-                    header_callback=self.show_header,
+                    header_callback=self._show_header,
                 )
-
                 if result == 'BACK':
                     return 'exit'
-                else:
-                    return result
-
+                return result
             except KeyboardInterrupt:
                 return 'exit'
 
-    def handle_normal_use(self):
-        """Handle normal use option"""
-        target_dir = self.config['default_directory']
-        try:
-            os.chdir(target_dir)
-            self.clear_screen()
-            self.console.print(f"[green]Changed to {target_dir} and returned to normal terminal mode.[/green]")
-            sys.exit(0)
-        except Exception as e:
-            self.console.print(f"[red]Error changing to {target_dir}: {e}[/red]")
-            self.console.print("[yellow]Returning to normal terminal mode in current directory.[/yellow]")
-            sys.exit(0)
+    # ------------------------------------------------------------------
+    # Handlers
+    # ------------------------------------------------------------------
 
-    def handle_projects_menu(self):
-        """Handle project management menu"""
-        return self.project_manager.show_menu()
+    def _handle_normal_use(self):
+        self._change_dir_and_exit(Path.cwd())
 
-    def handle_filesystem_menu(self):
-        """Handle file system navigation - go directly to iCloud Drive"""
-        icloud_path = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'
-
-        try:
-            if not icloud_path.exists():
-                self.console.print("[red]iCloud Drive not found. Make sure iCloud is set up.[/red]")
-                input("Press Enter to continue...")
-                return 'continue'
-
-            # Write the target directory to a file that the shell can read
-            cd_file = Path.home() / '.mode' / '.mode_cd'
-            with open(cd_file, 'w') as f:
-                f.write(str(icloud_path))
-
-            # Clear screen
-            self.clear_screen()
-
-            self.console.print()
-
-            # Run ls command to show contents
-            try:
-                result = subprocess.run(['ls', '-la'], capture_output=True, text=True, cwd=icloud_path)
-                if result.returncode == 0:
-                    self.console.print("[bold blue]Directory Contents:[/bold blue]")
-                    self.console.print(result.stdout)
-                else:
-                    self.console.print("[yellow]Could not list directory contents[/yellow]")
-            except Exception as e:
-                self.console.print(f"[yellow]Error running ls: {e}[/yellow]")
-
-            # Exit with special code to indicate directory change
-            sys.exit(42)
-
-        except Exception as e:
-            self.console.print(f"[red]Error navigating to iCloud Drive: {e}[/red]")
+    def _handle_filesystem(self):
+        icloud = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'
+        if not icloud.exists():
+            self.console.print("[red]iCloud Drive not found. Make sure iCloud is set up.[/red]")
             input("Press Enter to continue...")
             return 'continue'
+        self._change_dir_and_exit(icloud)
 
-    def handle_thecode_menu(self):
-        """Handle navigation to Mode Terminal source code"""
-        mode_path = Path.home() / '.mode'
-
-        try:
-            if not mode_path.exists():
-                self.console.print("[red]Mode Terminal source directory not found.[/red]")
-                input("Press Enter to continue...")
-                return 'continue'
-
-            # Write the target directory to a file that the shell can read
-            cd_file = Path.home() / '.mode' / '.mode_cd'
-            with open(cd_file, 'w') as f:
-                f.write(str(mode_path))
-
-            # Clear screen
-            self.clear_screen()
-
-            self.console.print()
-
-            # Run ls command to show contents
-            try:
-                result = subprocess.run(['ls', '-la'], capture_output=True, text=True, cwd=mode_path)
-                if result.returncode == 0:
-                    self.console.print("[bold blue]Source Code Directory Contents:[/bold blue]")
-                    self.console.print(result.stdout)
-                else:
-                    self.console.print("[yellow]Could not list directory contents[/yellow]")
-            except Exception as e:
-                self.console.print(f"[yellow]Error running ls: {e}[/yellow]")
-
-            # Exit with special code to indicate directory change
-            sys.exit(42)
-
-        except Exception as e:
-            self.console.print(f"[red]Error navigating to source directory: {e}[/red]")
+    def _handle_thecode(self):
+        mode_path = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs' / 'Projects' / 'mode'
+        if not mode_path.exists():
+            self.console.print("[red]Mode Terminal source directory not found.[/red]")
             input("Press Enter to continue...")
             return 'continue'
+        self._change_dir_and_exit(mode_path)
 
-    def handle_john_ssh(self):
-        """Handle SSH connection to butler@john"""
+    def _handle_john_ssh(self):
         try:
-            self.clear_screen()
-
-            self.console.print("[bold blue]Connecting to butler@john...[/bold blue]")
+            self._clear()
+            self.console.print("[bold]Connecting to butler@john...[/bold]")
             self.console.print()
-
-            ssh_command = ['ssh', 'butler@john']
-            subprocess.run(ssh_command)
-
+            subprocess.run(['ssh', 'butler@john'])
             self.console.print()
-            self.console.print("[green]SSH session ended. Returning to terminal.[/green]")
+            self.console.print("[green]SSH session ended.[/green]")
             sys.exit(0)
-
         except Exception as e:
             self.console.print(f"[red]Error connecting to john: {e}[/red]")
             input("Press Enter to continue...")
             return 'continue'
 
-    def handle_claude_usage(self):
-        """Handle opening Claude AI usage settings in browser"""
-        import webbrowser
+    def _handle_ubuntu_ssh(self):
+        try:
+            self._clear()
+            self.console.print('[bold]Connecting to jaden@ubuntu (WSL2)...[/bold]')
+            self.console.print()
+            subprocess.run(['ssh', 'ubuntu'])
+            self.console.print()
+            self.console.print('[green]SSH session ended.[/green]')
+            sys.exit(0)
+        except Exception as e:
+            self.console.print(f'[red]Error connecting to ubuntu: {e}[/red]')
+            input('Press Enter to continue...')
+            return 'continue'
 
+    def _handle_claude_usage(self):
+        import webbrowser
         try:
             webbrowser.open('https://claude.ai/settings/usage')
-            self.console.print("[green]Opened Claude usage settings in browser.[/green]")
+            self.console.print("[green]Opened Claude usage in browser.[/green]")
             sys.exit(0)
-
         except Exception as e:
             self.console.print(f"[red]Error opening browser: {e}[/red]")
             input("Press Enter to continue...")
             return 'continue'
 
-    def handle_help_menu(self):
-        """Handle help and documentation menu"""
+    def _handle_projects(self):
+        try:
+            self._clear()
+            subprocess.run(['projectmaker'], cwd=str(self.config.get('projects_path', Path.home())))
+            sys.exit(0)
+        except FileNotFoundError:
+            self.console.print("[red]projectmaker not found. Install it to ~/.local/bin/[/red]")
+            input("Press Enter to continue...")
+            return 'continue'
+
+    def _handle_customls_set(self):
+        try:
+            self._clear()
+            subprocess.run(['customls', 'set'])
+            input("\nPress Enter to continue...")
+            return 'continue'
+        except FileNotFoundError:
+            self.console.print("[red]customls not found. Install it to ~/.local/bin/[/red]")
+            input("Press Enter to continue...")
+            return 'continue'
+
+    def _handle_customls_colors(self):
+        try:
+            self._clear()
+            subprocess.run(['customls', 'colors'])
+            input("\nPress Enter to continue...")
+            return 'continue'
+        except FileNotFoundError:
+            self.console.print("[red]customls not found. Install it to ~/.local/bin/[/red]")
+            input("Press Enter to continue...")
+            return 'continue'
+
+    def _handle_bookmarks(self):
+        return self.bookmark_manager.show_menu()
+
+    def _handle_help(self):
         return self.help_system.show_help_menu()
 
-    def run(self):
-        """Main application loop"""
+    def _handle_prepare(self):
+        self.project_manager.prepare_for_claude()
+        return 'continue'
+
+    def _handle_ollama(self):
+        return self.ollama_manager.show_menu()
+
+    def _handle_alias(self):
+        options = [
+            {
+                'name': 'Create Alias',
+                'value': 'create',
+                'description': 'Create a new persistent shell alias',
+            },
+            {
+                'name': 'View Aliases',
+                'value': 'view',
+                'description': 'Show all custom aliases you have added',
+            },
+        ]
+
         while True:
             try:
-                choice = self.run_main_menu()
+                result = show_menu(self.console, "Alias Manager", options)
+                if result in ('BACK', 'back'):
+                    return 'continue'
+                elif result == 'create':
+                    return self._create_alias()
+                elif result == 'view':
+                    self._view_aliases()
+            except KeyboardInterrupt:
+                return 'continue'
 
+    def _create_alias(self):
+        try:
+            alias_name = prompt_text(self.console, "Alias name")
+            if not alias_name:
+                return 'continue'
+            command = prompt_text(self.console, "Command")
+            if not command:
+                return 'continue'
+            alias_name = self.alias_manager.add_alias(alias_name, command)
+        except ValueError as exc:
+            self.console.print(f"[red]Alias error: {exc}[/red]")
+            input("Press Enter to continue...")
+            return 'continue'
+
+        self._save_config()
+        self.console.print(f"[green]Loaded alias '{alias_name}' into the current shell.[/green]")
+        sys.exit(43)
+
+    def _view_aliases(self):
+        from rich.table import Table
+        self._clear()
+        aliases = self.config.get('aliases', {})
+        if not aliases:
+            self.console.print("\n  [dim]No custom aliases set. Use 'Create Alias' to add one.[/dim]\n")
+            input("Press Enter to continue...")
+            return
+
+        table = Table(title="Custom Aliases", border_style="cyan", expand=True)
+        table.add_column("Alias", style="bold color(141)", min_width=12)
+        table.add_column("Command", style="white", min_width=20)
+
+        for name, command in sorted(aliases.items()):
+            table.add_row(name, command)
+
+        self.console.print()
+        self.console.print(table)
+        self.console.print()
+        input("Press Enter to continue...")
+
+    # ------------------------------------------------------------------
+    # Main loop
+    # ------------------------------------------------------------------
+
+    _HANDLERS = {
+        'normal':       '_handle_normal_use',
+        'filesystem':   '_handle_filesystem',
+        'john':         '_handle_john_ssh',
+        'ubuntu':       '_handle_ubuntu_ssh',
+        'claude_usage': '_handle_claude_usage',
+        'projects':       '_handle_projects',
+        'customls_set':   '_handle_customls_set',
+        'customls_colors':'_handle_customls_colors',
+        'bookmarks':      '_handle_bookmarks',
+        'prepare':        '_handle_prepare',
+        'alias':          '_handle_alias',
+        'ollama':         '_handle_ollama',
+        'thecode':      '_handle_thecode',
+        'help':         '_handle_help',
+    }
+
+    def run(self):
+        while True:
+            try:
+                choice = self._run_main_menu()
                 if choice == 'exit':
                     break
-                elif choice == 'normal':
-                    self.handle_normal_use()
+
+                handler_name = self._HANDLERS.get(choice)
+                if handler_name is None:
+                    continue
+
+                result = getattr(self, handler_name)()
+                if result == 'exit':
                     break
-                elif choice == 'filesystem':
-                    result = self.handle_filesystem_menu()
-                    if result == 'exit':
-                        break
-                elif choice == 'john':
-                    result = self.handle_john_ssh()
-                    if result == 'exit':
-                        break
-                elif choice == 'claude_usage':
-                    result = self.handle_claude_usage()
-                    if result == 'exit':
-                        break
-                elif choice == 'thecode':
-                    result = self.handle_thecode_menu()
-                    if result == 'exit':
-                        break
-                elif choice == 'projects':
-                    result = self.handle_projects_menu()
-                    if result == 'exit':
-                        break
-                elif choice == 'bookmarks':
-                    result = self.bookmark_manager.show_menu()
-                    if result == 'exit':
-                        break
-                elif choice == 'help':
-                    result = self.handle_help_menu()
-                    if result == 'exit':
-                        break
 
             except KeyboardInterrupt:
                 break
             except SystemExit:
-                # Re-raise SystemExit to allow proper exit codes
                 raise
             except Exception as e:
-                self.console.print(f"[red]An error occurred: {e}[/red]")
+                self.console.print(f"[red]Error: {e}[/red]")
                 input("Press Enter to continue...")
 
-        # Save config before exit
-        self.save_config()
+        self._save_config()
 
+
+# ------------------------------------------------------------------
+# Entry point
+# ------------------------------------------------------------------
 
 def main():
-    """Main entry point for the application"""
     import argparse
 
     parser = argparse.ArgumentParser(
         description="Mode Terminal - Interactive development workflow navigator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  mode            Launch interactive navigator
-  mode --version  Show version information
-
-For more information, visit: https://github.com/JadenB9/mode-terminal
-        """
+        epilog=(
+            "Examples:\n"
+            "  mode            Launch interactive navigator\n"
+            "  mode --version  Show version information\n"
+            "\n"
+            "https://github.com/JadenB9/mode-terminal"
+        ),
     )
 
     parser.add_argument(
         '--version',
         action='version',
-        version='Mode Terminal v2.0'
+        version=f'Mode Terminal v{VERSION}',
     )
 
     parser.add_argument(
         '--config',
         help='Path to custom configuration file',
-        default=None
+        default=None,
     )
 
     args = parser.parse_args()
@@ -366,16 +430,12 @@ For more information, visit: https://github.com/JadenB9/mode-terminal
     try:
         app = ModeApp()
         if args.config:
-            import json
             with open(args.config, 'r') as f:
-                custom_config = json.load(f)
-                app.config.update(custom_config)
-
+                app.config.update(json.load(f))
         app.run()
     except KeyboardInterrupt:
         pass
     except SystemExit:
-        # Re-raise SystemExit to allow proper exit codes (like exit code 42)
         raise
     except Exception as e:
         print(f"ERROR: {e}")

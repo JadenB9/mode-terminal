@@ -5,11 +5,9 @@ import sys
 from pathlib import Path
 from typing import Dict, Any
 
-import questionary
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
-from menu_input import show_menu
+from menu_input import show_menu, prompt_text, prompt_select
 
 
 class BookmarkManager:
@@ -95,36 +93,41 @@ class BookmarkManager:
             input("\nPress Enter to continue...")
             return 'continue'
 
+        # Build choices as "name  ->  path" strings, filtering out missing paths
         choices = []
+        valid_names = []
         for name, path in bookmarks.items():
-            exists = Path(path).exists()
-            marker = "[green]✓[/green]" if exists else "[red]✗[/red]"
-            choices.append(questionary.Choice(
-                title=f"{name}  →  {path}",
-                value=name,
-                disabled=None if exists else "path missing",
-            ))
+            if Path(path).exists():
+                choices.append(f"{name}  ->  {path}")
+                valid_names.append(name)
+
+        if not choices:
+            self.console.print("[yellow]All bookmarked paths are missing.[/yellow]")
+            input("\nPress Enter to continue...")
+            return 'continue'
 
         try:
-            selected = questionary.select(
+            selected = prompt_select(
+                self.console,
                 "Select bookmark to navigate to:",
-                choices=choices,
-                use_arrow_keys=True,
-            ).ask()
+                choices,
+            )
         except KeyboardInterrupt:
             return 'continue'
 
         if selected is None:
             return 'continue'
 
-        target_path = bookmarks[selected]
+        # Extract name from "name  ->  path" format
+        name = selected.split("  ->  ")[0]
+        target_path = bookmarks[name]
 
         # Write the target directory for the shell wrapper to cd into
         cd_file = Path.home() / '.mode' / '.mode_cd'
         with open(cd_file, 'w') as f:
             f.write(target_path)
 
-        self.console.print(f"[green]Navigating to bookmark '{selected}': {target_path}[/green]")
+        self.console.print(f"[green]Navigating to bookmark '{name}': {target_path}[/green]")
         sys.exit(42)
 
     def save_bookmark(self):
@@ -132,25 +135,19 @@ class BookmarkManager:
         cwd = os.getcwd()
         bookmarks = self._load_bookmarks()
 
-        try:
-            name = questionary.text(
-                "Bookmark name:",
-                default="temp",
-            ).ask()
-        except KeyboardInterrupt:
-            return
+        name = prompt_text(self.console, "Bookmark name", default="temp")
 
         if not name:
             return
 
         bookmarks[name] = cwd
         self._save_bookmarks(bookmarks)
-        self.console.print(f"[green]Saved '{name}' → {cwd}[/green]")
+        self.console.print(f"[green]Saved '{name}' -> {cwd}[/green]")
         input("\nPress Enter to continue...")
 
     def list_bookmarks(self):
         """Display all bookmarks in a rich table."""
-        os.system('clear')
+        self.console.clear()
         bookmarks = self._load_bookmarks()
 
         if not bookmarks:
@@ -164,7 +161,7 @@ class BookmarkManager:
         table.add_column("Status", style="green")
 
         for name, path in bookmarks.items():
-            exists = "✓ exists" if Path(path).exists() else "✗ missing"
+            exists = "exists" if Path(path).exists() else "missing"
             style = "green" if Path(path).exists() else "red"
             table.add_row(name, path, f"[{style}]{exists}[/{style}]")
 
@@ -181,22 +178,22 @@ class BookmarkManager:
             input("\nPress Enter to continue...")
             return
 
-        choices = [f"{name}  →  {path}" for name, path in bookmarks.items()]
+        choices = [f"{name}  ->  {path}" for name, path in bookmarks.items()]
 
         try:
-            selected = questionary.select(
+            selected = prompt_select(
+                self.console,
                 "Select bookmark to delete:",
-                choices=choices,
-                use_arrow_keys=True,
-            ).ask()
+                choices,
+            )
         except KeyboardInterrupt:
             return
 
         if selected is None:
             return
 
-        # Extract name from "name  →  path" format
-        name = selected.split("  →  ")[0]
+        # Extract name from "name  ->  path" format
+        name = selected.split("  ->  ")[0]
 
         if name in bookmarks:
             del bookmarks[name]
