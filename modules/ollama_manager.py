@@ -215,8 +215,72 @@ class OllamaManager:
         title.append("  ", style="default")
         title.append("Local LLM Manager", style="dim")
         self.console.print(title)
-        self.console.print(Text(f"Install / docs: {OLLAMA_URL}", style="dim"))
+
+        models = self._list_models()
+        model_count = len(models)
+        total_size = sum(self._parse_size_mb(m.get("size", "")) for m in models)
+        if total_size >= 1024:
+            size_str = f"{total_size / 1024:.1f} GB"
+        else:
+            size_str = f"{total_size:.0f} MB"
+
+        info = Text(f"{model_count} model{'s' if model_count != 1 else ''} installed", style="dim")
+        info.append(f"  •  {size_str} total", style="dim")
+        self.console.print(info)
         self.console.print()
+
+    @staticmethod
+    def _parse_size_mb(size_str: str) -> float:
+        """Parse a size string like '4.1 GB' into MB."""
+        if not size_str:
+            return 0
+        parts = size_str.split()
+        if len(parts) != 2:
+            return 0
+        try:
+            val = float(parts[0])
+        except ValueError:
+            return 0
+        unit = parts[1].upper()
+        if unit == "GB":
+            return val * 1024
+        elif unit == "MB":
+            return val
+        elif unit == "TB":
+            return val * 1024 * 1024
+        return 0
+
+    def _start_ollama(self) -> bool:
+        """Attempt to start the Ollama server. Returns True if started."""
+        import platform
+        try:
+            if platform.system() == "Darwin":
+                subprocess.Popen(
+                    ["open", "-a", "Ollama"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            else:
+                subprocess.Popen(
+                    ["ollama", "serve"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
+            self.console.print("[dim]Starting Ollama...[/dim]")
+            import time
+            for _ in range(10):
+                time.sleep(1)
+                if self._ollama_running():
+                    self.console.print("[green]Ollama is running.[/green]")
+                    return True
+            self.console.print("[yellow]Ollama didn't start in time. Try starting it manually.[/yellow]")
+            input("Press Enter to continue...")
+            return False
+        except Exception as e:
+            self.console.print(f"[red]Could not start Ollama: {e}[/red]")
+            input("Press Enter to continue...")
+            return False
 
     def show_menu(self):
         """Main Ollama menu."""
@@ -234,6 +298,15 @@ class OllamaManager:
                 return "continue"
             input("Press Enter to continue...")
             return "continue"
+
+        if not self._ollama_running():
+            self.console.print()
+            self.console.print("[yellow]Ollama is installed but not running.[/yellow]")
+            if prompt_confirm(self.console, "Start Ollama now?", default=True):
+                if not self._start_ollama():
+                    return "continue"
+            else:
+                return "continue"
 
         while True:
             models = self._list_models()

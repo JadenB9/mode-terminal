@@ -53,24 +53,9 @@ MAIN_MENU_OPTIONS = [
         'description': 'SSH into Windows then into Ubuntu (WSL2)',
     },
     {
-        'name': 'Claude Usage',
-        'value': 'claude_usage',
-        'description': 'Open Claude AI usage in browser',
-    },
-    {
         'name': 'Projects',
         'value': 'projects',
         'description': 'Create new projects with projectmaker',
-    },
-    {
-        'name': 'Custom LS Set',
-        'value': 'customls_set',
-        'description': 'Assign colors to files and directories',
-    },
-    {
-        'name': 'Custom LS Colors',
-        'value': 'customls_colors',
-        'description': 'View current custom color assignments',
     },
     {
         'name': 'Bookmarks',
@@ -78,24 +63,34 @@ MAIN_MENU_OPTIONS = [
         'description': 'Manage directory bookmarks',
     },
     {
-        'name': 'Prepare for Claude',
-        'value': 'prepare',
-        'description': 'Add CLAUDE.md and optimize dir for Claude Code',
-    },
-{
         'name': 'Alias',
         'value': 'alias',
         'description': 'Create or view persistent shell aliases',
     },
     {
-        'name': 'Source Code',
-        'value': 'thecode',
-        'description': 'Open Mode Terminal source directory',
+        'name': 'Custom LS',
+        'value': 'customls',
+        'description': 'Set or view custom directory colors',
+    },
+    {
+        'name': 'Claude Usage',
+        'value': 'claude_usage',
+        'description': 'Open Claude AI usage in browser',
+    },
+    {
+        'name': 'Claude Prep',
+        'value': 'prepare',
+        'description': 'Add CLAUDE.md and optimize dir for Claude Code',
     },
     {
         'name': 'Ollama',
         'value': 'ollama',
         'description': 'Chat with local LLM models via Ollama',
+    },
+    {
+        'name': 'Source Code',
+        'value': 'thecode',
+        'description': 'Open Mode Terminal source directory',
     },
     {
         'name': 'Help',
@@ -266,27 +261,39 @@ class ModeApp:
             input("Press Enter to continue...")
             return 'continue'
 
-    def _handle_customls_set(self):
-        try:
-            self._clear()
-            subprocess.run(['customls', 'set'])
-            input("\nPress Enter to continue...")
-            return 'continue'
-        except FileNotFoundError:
-            self.console.print("[red]customls not found. Install it to ~/.local/bin/[/red]")
-            input("Press Enter to continue...")
-            return 'continue'
+    def _handle_customls(self):
+        options = [
+            {
+                'name': 'Set Colors',
+                'value': 'set',
+                'description': 'Assign colors to files and directories',
+            },
+            {
+                'name': 'View Colors',
+                'value': 'colors',
+                'description': 'Show current custom color assignments',
+            },
+        ]
 
-    def _handle_customls_colors(self):
-        try:
-            self._clear()
-            subprocess.run(['customls', 'colors'])
-            input("\nPress Enter to continue...")
-            return 'continue'
-        except FileNotFoundError:
-            self.console.print("[red]customls not found. Install it to ~/.local/bin/[/red]")
-            input("Press Enter to continue...")
-            return 'continue'
+        while True:
+            try:
+                result = show_menu(self.console, "Custom LS", options)
+                if result in ('BACK', 'back'):
+                    return 'continue'
+                elif result == 'set':
+                    self._clear()
+                    subprocess.run(['customls', 'set'])
+                    input("\nPress Enter to continue...")
+                elif result == 'colors':
+                    self._clear()
+                    subprocess.run(['customls', 'colors'])
+                    input("\nPress Enter to continue...")
+            except FileNotFoundError:
+                self.console.print("[red]customls not found. Install it to ~/.local/bin/[/red]")
+                input("Press Enter to continue...")
+                return 'continue'
+            except KeyboardInterrupt:
+                return 'continue'
 
     def _handle_bookmarks(self):
         return self.bookmark_manager.show_menu()
@@ -378,8 +385,7 @@ class ModeApp:
         'ubuntu':       '_handle_ubuntu_ssh',
         'claude_usage': '_handle_claude_usage',
         'projects':       '_handle_projects',
-        'customls_set':   '_handle_customls_set',
-        'customls_colors':'_handle_customls_colors',
+        'customls':       '_handle_customls',
         'bookmarks':      '_handle_bookmarks',
         'prepare':        '_handle_prepare',
         'alias':          '_handle_alias',
