@@ -24,7 +24,7 @@ from bookmark_manager import BookmarkManager
 from ollama_manager import OllamaManager
 from menu_input import show_menu, prompt_text
 
-VERSION = "2.0"
+VERSION = "3.0"
 
 MAIN_MENU_OPTIONS = [
     {
@@ -161,8 +161,8 @@ class ModeApp:
             "|_|  |_|\\___/|___/|___|\n"
         )
         self.console.print(Text(art, style="bold color(141)"), end="")
+        self.console.print(Text("──────────────────────", style="color(242)"))
         self.console.print(Text(f"  v{VERSION}", style="dim"))
-        self.console.print()
 
     def _change_dir_and_exit(self, target: Path):
         """Write target to .mode_cd and exit with code 42."""

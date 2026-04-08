@@ -282,6 +282,24 @@ class OllamaManager:
             input("Press Enter to continue...")
             return False
 
+    def _stop_ollama(self):
+        """Stop the Ollama server."""
+        if prompt_confirm(self.console, "Stop Ollama?", default=False):
+            try:
+                subprocess.run(
+                    ["pkill", "-f", "ollama"],
+                    capture_output=True, timeout=5,
+                )
+                import time
+                time.sleep(1)
+                if not self._ollama_running():
+                    self.console.print("[green]Ollama stopped.[/green]")
+                else:
+                    self.console.print("[yellow]Ollama may still be running.[/yellow]")
+            except Exception as e:
+                self.console.print(f"[red]Error stopping Ollama: {e}[/red]")
+            input("Press Enter to continue...")
+
     def show_menu(self):
         """Main Ollama menu."""
         if not self._ollama_installed():
@@ -333,6 +351,7 @@ class OllamaManager:
             options.append({"name": "───────────────", "value": "sep", "description": ""})
             options.append({"name": "Pull Model", "value": "pull", "description": "Download a new model"})
             options.append({"name": "Delete Model", "value": "delete", "description": "Remove a local model"})
+            options.append({"name": "Stop Ollama", "value": "stop", "description": "Shut down the Ollama server", "style": "bold red"})
             options.append({"name": "Ollama Website", "value": "website", "description": OLLAMA_URL})
             options.append({"name": "Back", "value": "back", "description": "Return to main menu"})
 
@@ -354,6 +373,9 @@ class OllamaManager:
                     self._model_detail_menu(model)
             elif result == "pull":
                 self._pull_model()
+            elif result == "stop":
+                self._stop_ollama()
+                return "continue"
             elif result == "delete":
                 self._delete_model()
             elif result == "website":
