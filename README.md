@@ -1,4 +1,4 @@
-# Mode Terminal v1.0 🚀
+# Mode Terminal v1.0
 
 An interactive terminal application for navigating and managing development workflows on macOS with integrated AI assistant.
 
