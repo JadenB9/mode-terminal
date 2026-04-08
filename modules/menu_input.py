@@ -146,9 +146,10 @@ def _draw(
     if header_callback:
         header_callback()
 
-    # Title bar
-    console.print(Text(f" {title} ", style=BRAND))
-    console.print()
+    # Title bar (skip if empty)
+    if title:
+        console.print(Text(f" {title} ", style=BRAND))
+        console.print()
 
     width = size[0]
     compact = width < 60
@@ -168,7 +169,11 @@ def _draw(
     for i, opt in enumerate(options):
         sel = i == idx
         marker = ">" if sel else " "
-        row: list[Any] = [marker, opt["name"]]
+        name = opt["name"]
+        opt_style = opt.get("style")
+        if opt_style and not sel:
+            name = Text(name, style=opt_style)
+        row: list[Any] = [marker, name]
         if not compact:
             row.append(opt.get("description", ""))
         tbl.add_row(*row)

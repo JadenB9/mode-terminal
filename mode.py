@@ -41,61 +41,73 @@ MAIN_MENU_OPTIONS = [
         'name': 'SSH John',
         'value': 'john',
         'description': 'Connect to butler@john via SSH',
+        'style': 'bold red',
     },
     {
         'name': 'SSH Windows',
         'value': 'windows',
         'description': 'Connect to jaden@windows via SSH',
+        'style': 'bold red',
     },
     {
         'name': 'SSH Ubuntu',
         'value': 'ubuntu',
         'description': 'SSH into Windows then into Ubuntu (WSL2)',
+        'style': 'bold red',
     },
     {
         'name': 'Projects',
         'value': 'projects',
         'description': 'Create new projects with projectmaker',
+        'style': 'bold cyan',
     },
     {
         'name': 'Bookmarks',
         'value': 'bookmarks',
         'description': 'Manage directory bookmarks',
+        'style': 'bold cyan',
     },
     {
         'name': 'Alias',
         'value': 'alias',
         'description': 'Create or view persistent shell aliases',
+        'style': 'bold cyan',
     },
     {
         'name': 'Custom LS',
         'value': 'customls',
         'description': 'Set or view custom directory colors',
+        'style': 'bold cyan',
     },
     {
         'name': 'Claude Usage',
         'value': 'claude_usage',
         'description': 'Open Claude AI usage in browser',
+        'style': 'bold color(208)',
     },
     {
         'name': 'Claude Prep',
         'value': 'prepare',
         'description': 'Add CLAUDE.md and optimize dir for Claude Code',
+        'style': 'bold color(208)',
     },
     {
         'name': 'Ollama',
         'value': 'ollama',
         'description': 'Chat with local LLM models via Ollama',
+        'style': 'bold white',
     },
     {
         'name': 'Source Code',
         'value': 'thecode',
         'description': 'Open Mode Terminal source directory',
+        'style': 'color(245)',
     },
     {
         'name': 'Help',
         'value': 'help',
         'description': 'Help system and documentation',
+        'style': 'color(245)',
     },
 ]
 
@@ -142,11 +154,14 @@ class ModeApp:
             os.system('clear')
 
     def _show_header(self):
-        title = Text("MODE", style="bold color(141)")
-        title.append("  ", style="default")
-        title.append(f"v{VERSION}", style="dim")
-        self.console.print(title)
-        self.console.print(Text("Terminal workflow navigator", style="dim"))
+        art = (
+            " __  __  ___  ___  ___ \n"
+            "|  \\/  |/ _ \\|   \\| __|\n"
+            "| |\\/| | (_) | |) | _| \n"
+            "|_|  |_|\\___/|___/|___|\n"
+        )
+        self.console.print(Text(art, style="bold color(141)"), end="")
+        self.console.print(Text(f"  v{VERSION}", style="dim"))
         self.console.print()
 
     def _change_dir_and_exit(self, target: Path):
@@ -165,7 +180,7 @@ class ModeApp:
             try:
                 result = show_menu(
                     self.console,
-                    "Main Menu",
+                    "",
                     MAIN_MENU_OPTIONS,
                     header_callback=self._show_header,
                 )
