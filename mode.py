@@ -24,13 +24,18 @@ from bookmark_manager import BookmarkManager
 from ollama_manager import OllamaManager
 from menu_input import show_menu, prompt_text
 
-VERSION = "3.0"
+VERSION = "3.1"
 
 MAIN_MENU_OPTIONS = [
     {
         'name': 'Current Directory',
         'value': 'normal',
         'description': 'Return to terminal in current directory',
+    },
+    {
+        'name': 'Project Directory',
+        'value': 'project_dir',
+        'description': 'Navigate to your Projects directory',
     },
     {
         'name': 'iCloud Drive',
@@ -205,6 +210,17 @@ class ModeApp:
             return 'continue'
         self._change_dir_and_exit(icloud)
 
+    def _handle_project_dir(self):
+        projects_path = Path(self.config.get(
+            'projects_path',
+            Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs' / 'Projects',
+        ))
+        if not projects_path.exists():
+            self.console.print(f"[red]Projects directory not found at {projects_path}[/red]")
+            input("Press Enter to continue...")
+            return 'continue'
+        self._change_dir_and_exit(projects_path)
+
     def _handle_thecode(self):
         mode_path = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs' / 'Projects' / 'mode'
         if not mode_path.exists():
@@ -268,29 +284,59 @@ class ModeApp:
 
     def _handle_projects(self):
         try:
+            # Auto-update projectmaker to latest version
+            self.console.print("[dim]Checking for projectmaker updates...[/dim]", end="")
+            subprocess.run(
+                ['brew', 'upgrade', 'JadenB9/tap/project'],
+                capture_output=True, timeout=30
+            )
+            self.console.print("\r" + " " * 50 + "\r", end="")
             self._clear()
-            subprocess.run(['projectmaker'], cwd=str(self.config.get('projects_path', Path.home())))
+            subprocess.run(['project'], cwd=str(self.config.get('projects_path', Path.home())))
             sys.exit(0)
         except FileNotFoundError:
-            self.console.print("[red]projectmaker not found. Install it to ~/.local/bin/[/red]")
+            self.console.print("[red]projectmaker not found. Install with: brew install JadenB9/tap/project[/red]")
             input("Press Enter to continue...")
             return 'continue'
+        except Exception:
+            # If brew update fails, just run project anyway
+            self._clear()
+            subprocess.run(['project'], cwd=str(self.config.get('projects_path', Path.home())))
+            sys.exit(0)
+
+    def _get_customls_order_status(self) -> bool:
+        """Read the order_by_color flag from customls config."""
+        try:
+            cfg_path = Path.home() / '.config' / 'customls' / 'colors.json'
+            with open(cfg_path) as f:
+                data = json.load(f)
+            return data.get('order_by_color', False)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return False
 
     def _handle_customls(self):
-        options = [
-            {
-                'name': 'Set Colors',
-                'value': 'set',
-                'description': 'Assign colors to files and directories',
-            },
-            {
-                'name': 'View Colors',
-                'value': 'colors',
-                'description': 'Show current custom color assignments',
-            },
-        ]
-
         while True:
+            order_on = self._get_customls_order_status()
+            status = "ON" if order_on else "OFF"
+            options = [
+                {
+                    'name': 'Set Colors',
+                    'value': 'set',
+                    'description': 'Assign colors to files and directories',
+                },
+                {
+                    'name': 'View Colors',
+                    'value': 'colors',
+                    'description': 'Show current custom color assignments',
+                },
+                {
+                    'name': f'Order Colors [{status}]',
+                    'value': 'order',
+                    'description': 'Toggle sorting items by color group',
+                    'style': 'bold green' if order_on else 'bold red',
+                },
+            ]
+
             try:
                 result = show_menu(self.console, "Custom LS", options)
                 if result in ('BACK', 'back'):
@@ -302,6 +348,10 @@ class ModeApp:
                 elif result == 'colors':
                     self._clear()
                     subprocess.run(['customls', 'colors'])
+                    input("\nPress Enter to continue...")
+                elif result == 'order':
+                    self._clear()
+                    subprocess.run(['customls', 'order'])
                     input("\nPress Enter to continue...")
             except FileNotFoundError:
                 self.console.print("[red]customls not found. Install it to ~/.local/bin/[/red]")
@@ -331,9 +381,9 @@ class ModeApp:
                 'description': 'Create a new persistent shell alias',
             },
             {
-                'name': 'View Aliases',
-                'value': 'view',
-                'description': 'Show all custom aliases you have added',
+                'name': 'Manage Aliases',
+                'value': 'manage',
+                'description': 'View, edit, or remove your aliases',
             },
         ]
 
@@ -344,8 +394,11 @@ class ModeApp:
                     return 'continue'
                 elif result == 'create':
                     return self._create_alias()
-                elif result == 'view':
-                    self._view_aliases()
+                elif result == 'manage':
+                    mgr_result = self._manage_aliases()
+                    if mgr_result == 'reload':
+                        self._save_config()
+                        sys.exit(43)
             except KeyboardInterrupt:
                 return 'continue'
 
@@ -367,26 +420,88 @@ class ModeApp:
         self.console.print(f"[green]Loaded alias '{alias_name}' into the current shell.[/green]")
         sys.exit(43)
 
-    def _view_aliases(self):
-        from rich.table import Table
-        self._clear()
-        aliases = self.config.get('aliases', {})
-        if not aliases:
-            self.console.print("\n  [dim]No custom aliases set. Use 'Create Alias' to add one.[/dim]\n")
-            input("Press Enter to continue...")
-            return
+    def _manage_aliases(self):
+        from menu_input import prompt_confirm
 
-        table = Table(title="Custom Aliases", border_style="cyan", expand=True)
-        table.add_column("Alias", style="bold color(141)", min_width=12)
-        table.add_column("Command", style="white", min_width=20)
+        while True:
+            all_aliases = self.alias_manager.get_all_aliases()
+            if not all_aliases:
+                self._clear()
+                self.console.print("\n  [dim]No custom aliases found in .zshrc.[/dim]\n")
+                input("Press Enter to continue...")
+                return
 
-        for name, command in sorted(aliases.items()):
-            table.add_row(name, command)
+            alias_options = []
+            for name, command in all_aliases:
+                # Truncate long commands for display
+                display_cmd = command if len(command) <= 50 else command[:47] + "..."
+                alias_options.append({
+                    'name': name,
+                    'value': name,
+                    'description': display_cmd,
+                    'style': 'bold color(141)',
+                })
 
-        self.console.print()
-        self.console.print(table)
-        self.console.print()
-        input("Press Enter to continue...")
+            try:
+                selected = show_menu(self.console, "Your Aliases", alias_options)
+                if selected in ('BACK', 'back'):
+                    return
+            except KeyboardInterrupt:
+                return
+
+            # Find the full command for the selected alias
+            selected_cmd = None
+            for name, command in all_aliases:
+                if name == selected:
+                    selected_cmd = command
+                    break
+
+            # Show action menu for this alias
+            action_options = [
+                {
+                    'name': 'Edit',
+                    'value': 'edit',
+                    'description': f'Change the command for "{selected}"',
+                    'style': 'bold color(208)',
+                },
+                {
+                    'name': 'Remove',
+                    'value': 'remove',
+                    'description': f'Delete "{selected}" from .zshrc',
+                    'style': 'bold red',
+                },
+            ]
+
+            try:
+                action = show_menu(self.console, f"{selected} = {selected_cmd}", action_options)
+                if action in ('BACK', 'back'):
+                    continue
+            except KeyboardInterrupt:
+                continue
+
+            if action == 'edit':
+                new_cmd = prompt_text(self.console, "New command", default=selected_cmd)
+                if not new_cmd or new_cmd == selected_cmd:
+                    continue
+                try:
+                    self.alias_manager.edit_alias(selected, new_cmd)
+                    self._save_config()
+                    self.console.print(f"[green]Updated alias '{selected}'.[/green]")
+                    return 'reload'
+                except ValueError as exc:
+                    self.console.print(f"[red]Error: {exc}[/red]")
+                    input("Press Enter to continue...")
+
+            elif action == 'remove':
+                if prompt_confirm(self.console, f"Remove alias '{selected}'?", default=False):
+                    try:
+                        self.alias_manager.remove_alias(selected)
+                        self._save_config()
+                        self.console.print(f"[green]Removed alias '{selected}'.[/green]")
+                        return 'reload'
+                    except ValueError as exc:
+                        self.console.print(f"[red]Error: {exc}[/red]")
+                        input("Press Enter to continue...")
 
     # ------------------------------------------------------------------
     # Main loop
@@ -394,6 +509,7 @@ class ModeApp:
 
     _HANDLERS = {
         'normal':       '_handle_normal_use',
+        'project_dir':  '_handle_project_dir',
         'filesystem':   '_handle_filesystem',
         'john':         '_handle_john_ssh',
         'windows':      '_handle_windows_ssh',
