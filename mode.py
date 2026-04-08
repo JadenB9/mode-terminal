@@ -43,9 +43,14 @@ MAIN_MENU_OPTIONS = [
         'description': 'Connect to butler@john via SSH',
     },
     {
+        'name': 'SSH Windows',
+        'value': 'windows',
+        'description': 'Connect to jaden@windows via SSH',
+    },
+    {
         'name': 'SSH Ubuntu',
         'value': 'ubuntu',
-        'description': 'Connect to jaden@ubuntu (WSL2) via SSH',
+        'description': 'SSH into Windows then into Ubuntu (WSL2)',
     },
     {
         'name': 'Claude Usage',
@@ -212,12 +217,26 @@ class ModeApp:
             input("Press Enter to continue...")
             return 'continue'
 
+    def _handle_windows_ssh(self):
+        try:
+            self._clear()
+            self.console.print('[bold]Connecting to jaden@windows...[/bold]')
+            self.console.print()
+            subprocess.run(['ssh', 'windows'])
+            self.console.print()
+            self.console.print('[green]SSH session ended.[/green]')
+            sys.exit(0)
+        except Exception as e:
+            self.console.print(f'[red]Error connecting to windows: {e}[/red]')
+            input('Press Enter to continue...')
+            return 'continue'
+
     def _handle_ubuntu_ssh(self):
         try:
             self._clear()
-            self.console.print('[bold]Connecting to jaden@ubuntu (WSL2)...[/bold]')
+            self.console.print('[bold]Connecting to Windows, then Ubuntu (WSL2)...[/bold]')
             self.console.print()
-            subprocess.run(['ssh', 'ubuntu'])
+            subprocess.run(['ssh', '-t', 'windows', 'ssh', 'ubuntu'])
             self.console.print()
             self.console.print('[green]SSH session ended.[/green]')
             sys.exit(0)
@@ -355,6 +374,7 @@ class ModeApp:
         'normal':       '_handle_normal_use',
         'filesystem':   '_handle_filesystem',
         'john':         '_handle_john_ssh',
+        'windows':      '_handle_windows_ssh',
         'ubuntu':       '_handle_ubuntu_ssh',
         'claude_usage': '_handle_claude_usage',
         'projects':       '_handle_projects',
